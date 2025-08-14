@@ -9,7 +9,7 @@ import {
   Image,
   X,
 } from "lucide-react";
-import graphSample from "./graphSample.png";
+import graphSample from "../../assets/graphsample.png"; // Sample graph image for demonstration
 
 const GraphicsInterpretationStructure = () => {
   const [questionData, setQuestionData] = useState({
