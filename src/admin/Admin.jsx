@@ -1,7 +1,7 @@
 import React from 'react';
 import { Archive, FileText, HelpCircle, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import AdminHeader from './AdminHeader';
+import AdminHeader from './components/AdminHeader';
 
 export default function Admin() {
   const navigate = useNavigate();

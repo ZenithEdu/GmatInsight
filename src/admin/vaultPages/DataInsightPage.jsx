@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   PieChart,
-  ChevronLeft,
   Plus,
   FileText,
   Eye,
@@ -27,6 +26,7 @@ const initialQuestions = [
     difficultyLevel: "L5",
     createdAt: "2025-08-12 11:45 AM",
     sources: ["text", "chart", "table"],
+    contentDomain: "Non-Math Related",
   },
   {
     id: "DI-102",
@@ -37,6 +37,7 @@ const initialQuestions = [
     createdAt: "2025-08-10 02:30 PM",
     columns: 5,
     rows: 8,
+    contentDomain: "Math Related",
   },
   {
     id: "DI-103",
@@ -46,6 +47,7 @@ const initialQuestions = [
     difficultyLevel: "L4",
     createdAt: "2025-08-09 09:15 AM",
     chartType: "bar",
+    contentDomain: "Non-Math Related",
   },
   {
     id: "DI-104",
@@ -55,6 +57,7 @@ const initialQuestions = [
     difficultyLevel: "L2",
     createdAt: "2025-08-07 04:20 PM",
     variables: 2,
+    contentDomain: "Math Related",
   },
   {
     id: "DI-105",
@@ -64,6 +67,7 @@ const initialQuestions = [
     difficultyLevel: "L5",
     createdAt: "2025-08-05 10:10 AM",
     statements: 2,
+    contentDomain: "Non-Math Related",
   },
   {
     id: "DI-106",
@@ -73,6 +77,7 @@ const initialQuestions = [
     difficultyLevel: "L4",
     createdAt: "2025-08-03 03:45 PM",
     sources: ["text", "diagram"],
+    contentDomain: "Math Related",
   },
   {
     id: "DI-107",
@@ -83,6 +88,7 @@ const initialQuestions = [
     createdAt: "2025-08-01 01:30 PM",
     columns: 4,
     rows: 6,
+    contentDomain: "Non-Math Related",
   },
 ];
 
@@ -143,7 +149,12 @@ export default function DataInsightsPage() {
   }, []);
 
   const handlePreview = useCallback((id) => {
-    alert(`Preview Question: ${id}`);
+    const question = questions.find((q) => q.id === id);
+    setSelectedQuestion(question);
+  }, [questions]);
+
+  const closePreview = useCallback(() => {
+    setSelectedQuestion(null);
   }, []);
 
   const handleDelete = useCallback(
@@ -151,10 +162,11 @@ export default function DataInsightsPage() {
       if (window.confirm(`Are you sure you want to delete Question ${id}?`)) {
         setQuestions((prev) => prev.filter((q) => q.id !== id));
         if (selectedQuestion && selectedQuestion.id === id) {
+          setSelectedQuestion(null);
         }
       }
     },
-    [selectedQuestion ]
+    [selectedQuestion]
   );
 
   const handleSort = useCallback((key) => {
@@ -281,28 +293,18 @@ export default function DataInsightsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center">
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-            <PieChart className="w-6 h-6 text-emerald-600 mr-2" />
-            Data Insights Vault
-          </h1>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">
-              Manage Data Insights Questions
-            </h2>
-            <p className="text-gray-500">
-              {filteredQuestions.length} question
-              {filteredQuestions.length !== 1 ? "s" : ""} found
+      <header className="sticky top-0 z-50 bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+              <PieChart className="w-6 h-6 text-emerald-600 mr-2" />
+              Data Insights Vault
+            </h1>
+            <p className="text-gray-500 text-sm">
+              ({filteredQuestions.length} question{filteredQuestions.length !== 1 ? "s" : ""} found)
             </p>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto">
+          <div className="flex gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
@@ -319,11 +321,14 @@ export default function DataInsightsPage() {
             </button>
           </div>
         </div>
+      </header>
 
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Filter Panel */}
         {showFilters && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Question ID
@@ -390,7 +395,7 @@ export default function DataInsightsPage() {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Level
@@ -427,41 +432,45 @@ export default function DataInsightsPage() {
         {/* Questions Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Table Header */}
-          <div className="hidden md:grid grid-cols-12 bg-gray-50 px-6 py-3 border-b border-gray-200">
+          <div className="hidden md:grid grid-cols-[1fr_1.8fr_1.5fr_1.2fr_0.8fr_0.6fr_1.2fr_0.8fr] bg-gray-50 px-4 py-3 border-b border-gray-200 text-sm font-semibold text-gray-600">
             <div
-              className="col-span-2 font-medium text-gray-500 cursor-pointer flex items-center"
+              className="cursor-pointer flex items-center pl-2"
               onClick={() => handleSort("id")}
             >
               Question ID {getSortIcon("id")}
             </div>
             <div
-              className="col-span-2 font-medium text-gray-500 cursor-pointer"
+              className="cursor-pointer flex items-center"
               onClick={() => handleSort("type")}
             >
               Type {getSortIcon("type")}
             </div>
             <div
-              className="col-span-2 font-medium text-gray-500 cursor-pointer"
+              className="cursor-pointer flex items-center"
               onClick={() => handleSort("topic")}
             >
               Topic {getSortIcon("topic")}
             </div>
-            <div className="col-span-1 font-medium text-gray-500">
-              Difficulty
-            </div>
             <div
-              className="col-span-1 font-medium text-gray-500 cursor-pointer"
+              className="cursor-pointer flex items-center"
+              onClick={() => handleSort("contentDomain")}
+            >
+              Content Domain {getSortIcon("contentDomain")}
+            </div>
+            <div className="flex items-center">Difficulty</div>
+            <div
+              className="cursor-pointer flex items-center"
               onClick={() => handleSort("difficultyLevel")}
             >
               Level {getSortIcon("difficultyLevel")}
             </div>
             <div
-              className="col-span-2 font-medium text-gray-500 cursor-pointer"
+              className="cursor-pointer flex items-center"
               onClick={() => handleSort("createdAt")}
             >
               Created At {getSortIcon("createdAt")}
             </div>
-            <div className="col-span-2 font-medium text-gray-500">Actions</div>
+            <div className="flex items-center">Actions</div>
           </div>
 
           {/* Table Rows */}
@@ -469,51 +478,49 @@ export default function DataInsightsPage() {
             sortedQuestions.map((q) => (
               <div
                 key={q.id}
-                className="grid grid-cols-1 md:grid-cols-12 px-4 md:px-6 py-4 border-b border-gray-100 hover:bg-gray-50 gap-2"
+                className="grid grid-cols-1 md:grid-cols-[1fr_1.8fr_1.5fr_1.2fr_0.8fr_0.6fr_1.2fr_0.8fr] px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors text-sm"
               >
-                <div className="col-span-2 flex items-center">
-                  <FileText className="w-4 h-4 text-emerald-600 mr-3" />
-                  <span className="font-medium">{q.id}</span>
+                <div className="flex items-center py-2 md:py-0">
+                  <FileText className="w-4 h-4 text-emerald-600 mr-2" />
+                  <span className="font-medium" title={q.id}>{q.id}</span>
                 </div>
-                <div className="col-span-2 text-gray-600 flex items-center">
+                <div className="flex items-center py-2 md:py-0">
                   {getQuestionTypeIcon(q.type)}
-                  <span className="truncate max-w-[150px] ml-2">{q.type}</span>
+                  <span className="truncate" title={q.type}>{q.type}</span>
                 </div>
-
-                <div className="col-span-2 text-gray-600">{q.topic}</div>
-                <div className="col-span-1">
+                <div className="truncate py-2 md:py-0" title={q.topic}>{q.topic}</div>
+                <div className="truncate py-2 md:py-0" title={q.contentDomain}>{q.contentDomain}</div>
+                <div className="py-2 md:py-0">
                   <span
-                    className={`px-2 py-1 rounded text-sm font-medium ${getDifficultyClass(
+                    className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyClass(
                       q.difficulty
                     )}`}
                   >
                     {q.difficulty}
                   </span>
                 </div>
-                <div className="col-span-1 text-gray-600">
-                  {q.difficultyLevel}
-                </div>
-                <div className="col-span-2 text-gray-500">{q.createdAt}</div>
-                <div className="col-span-2 flex gap-2">
+                <div className="py-2 md:py-0">{q.difficultyLevel}</div>
+                <div className="text-gray-500 py-2 md:py-0">{q.createdAt}</div>
+                <div className="flex gap-2 items-center py-2 md:py-0">
                   <button
                     onClick={() => handlePreview(q.id)}
-                    className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                    className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                    title="Preview"
                   >
-                    <Eye className="w-4 h-4" />{" "}
-                    <span className="hidden sm:inline">Preview</span>
+                    <Eye className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(q.id)}
-                    className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
+                    className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                    title="Delete"
                   >
-                    <Trash2 className="w-4 h-4" />{" "}
-                    <span className="hidden sm:inline">Delete</span>
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="px-6 py-8 text-center text-gray-500">
+            <div className="px-4 py-8 text-center text-gray-500">
               <p className="mb-2">No questions match your filters</p>
               <button
                 onClick={resetFilters}

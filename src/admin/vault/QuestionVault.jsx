@@ -5,7 +5,7 @@ import {
   Database,
   ChevronRight,
 } from "lucide-react";
-import AdminHeader from "../AdminHeader";
+import AdminHeader from "../components/AdminHeader";
 
 export default function QuestionVault() {
   const navigate = useNavigate();

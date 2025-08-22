@@ -19,10 +19,10 @@ import TestWindow from "./fullLengthTests/TestWindow.jsx";
 import NotFound from "./fullLengthTests/pages/NotFound.js";
 
 // Admin pages for test management
-import QuantPage from "./admin/QuantPage.jsx";
-import VerbalPage from "./admin/VerbalPage.jsx";
-import DataInsightPage from "./admin/DataInsightPage.jsx";
-import DataInsightsUploadPage from "./admin/DataInsightsUploadPage.jsx";
+import QuantPage from "./admin/vaultPages/QuantPage.jsx";
+import VerbalPage from "./admin/vaultPages/VerbalPage.jsx";
+import DataInsightPage from "./admin/vaultPages/DataInsightPage.jsx";
+import DataInsightsUploadPage from "./admin/uploadInterface/DataInsightsUploadPage.jsx";
 
 // Admin: Data Insight Question Structures
 import MultiSourceStructure from "./admin/dataInsightStructures/MultiSourceStructure.jsx";

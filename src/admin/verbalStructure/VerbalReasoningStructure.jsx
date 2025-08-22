@@ -1,23 +1,11 @@
-import { useState, useEffect } from "react";
-import {
-  Upload,
-  FileText,
-  Eye,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  BookOpen,
-  Trash2,
-  Plus,
-  X,
-} from "lucide-react";
-import * as XLSX from "xlsx";
+import { useState } from "react";
+import { FileText, Eye, ChevronLeft, ChevronRight, BookOpen, Trash2, Plus, X } from "lucide-react";
+import VerbalUploadPage from "../uploadInterface/VerbalUploadPage";
 
 const VerbalReasoningStructure = () => {
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentView, setCurrentView] = useState("upload");
-  const [uploadError, setUploadError] = useState("");
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [layouts, setLayouts] = useState({});
 
@@ -54,102 +42,27 @@ const VerbalReasoningStructure = () => {
     },
   ];
 
-  const loadSampleData = () => {
+  const handleFileUpload = (processedQuestions) => {
+    setQuestions(processedQuestions);
+    setLayouts(processedQuestions.reduce((acc, q) => ({ ...acc, [q.id]: q.layout || "single" }), {}));
+    setCurrentView("edit");
+    setSelectedAnswers({});
+    setCurrentQuestionIndex(0);
+  };
+
+  const handleLoadSampleData = () => {
     setQuestions(sampleData);
     setLayouts(sampleData.reduce((acc, q) => ({ ...acc, [q.id]: "single" }), {}));
     setCurrentView("edit");
-    setUploadError("");
     setSelectedAnswers({});
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-      setUploadError("Please upload an Excel file (.xlsx or .xls)");
-      return;
-    }
-
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      if (jsonData.length === 0) {
-        setUploadError("The Excel file appears to be empty.");
-        return;
-      }
-
-      const processedQuestions = jsonData.map((row, index) => {
-        const options = [];
-        for (let i = 1; i <= 5; i++) {
-          const optionValue = row[`option${i}`];
-          if (optionValue && optionValue.toString().trim() !== "") {
-            options.push(optionValue.toString().trim());
-          }
-        }
-
-        let correctAnswer = parseInt(row.correctAnswer);
-        if (isNaN(correctAnswer)) {
-          const match = row.correctAnswer?.toString().match(/\d+/);
-          correctAnswer = match ? parseInt(match[0]) - 1 : 0;
-        } else {
-          correctAnswer = correctAnswer - 1;
-        }
-
-        if (correctAnswer < 0 || correctAnswer >= options.length) {
-          correctAnswer = 0;
-        }
-
-        return {
-          id: row.id || index + 1,
-          passage: row.passage || "",
-          question: row.question || "",
-          options: options,
-          correctAnswer: correctAnswer,
-        };
-      });
-
-      setQuestions(processedQuestions);
-      setLayouts(processedQuestions.reduce((acc, q) => ({ ...acc, [q.id]: row.layout || "single" }), {}));
-      setCurrentView("edit");
-      setUploadError("");
-      setSelectedAnswers({});
-      setCurrentQuestionIndex(0);
-    } catch (error) {
-      setUploadError("Error reading the Excel file. Please check the format.");
-      console.error("Excel parsing error:", error);
-    }
-  };
-
-  const exportToExcel = () => {
-    try {
-      console.log("Exporting default Excel template");
-      // Create a template with just the column headers
-      const templateData = [{}]; // Empty row to ensure headers are included
-      const worksheet = XLSX.utils.json_to_sheet(templateData, {
-        header: [
-          "id",
-          "passage",
-          "question",
-          "option1",
-          "option2",
-          "option3",
-          "option4",
-          "option5",
-          "correctAnswer",
-          "layout",
-        ],
-      });
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "GMAT Questions");
-      XLSX.writeFile(workbook, "gmat_verbal_template.xlsx");
-    } catch (error) {
-      console.error("Error exporting Excel template:", error);
-      alert("Failed to download the Excel template. Please try again.");
-    }
+  const handleCreate = () => {
+    setQuestions([]);
+    setLayouts({});
+    setCurrentView("edit");
+    setSelectedAnswers({});
+    setCurrentQuestionIndex(0);
   };
 
   const updateQuestion = (index, field, value) => {
@@ -162,10 +75,7 @@ const VerbalReasoningStructure = () => {
     const updatedQuestions = [...questions];
     const newOptions = [...updatedQuestions[questionIndex].options];
     newOptions[optionIndex] = value;
-    updatedQuestions[questionIndex] = {
-      ...updatedQuestions[questionIndex],
-      options: newOptions,
-    };
+    updatedQuestions[questionIndex] = { ...updatedQuestions[questionIndex], options: newOptions };
     setQuestions(updatedQuestions);
   };
 
@@ -234,74 +144,10 @@ const VerbalReasoningStructure = () => {
 
   if (currentView === "upload") {
     return (
-      <div className="max-w-4xl mx-auto p-6 bg-white">
-        <div className="text-center space-y-6">
-          <div className="bg-blue-50 p-6 rounded-lg">
-            <h1 className="text-2xl font-bold text-blue-900 mb-2 flex items-center justify-center">
-              <BookOpen className="w-8 h-8 mr-2" />
-              GMAT Verbal Question Generator
-            </h1>
-            <p className="text-blue-700">
-              Upload an Excel file with GMAT reading comprehension questions or use sample data
-            </p>
-          </div>
-
-          {uploadError && (
-            <div className="bg-red-50 p-4 rounded-lg text-red-700 text-sm">
-              {uploadError}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-400 transition-colors">
-              <label className="cursor-pointer block">
-                <Upload className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">
-                  Upload Excel File
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Select an Excel file with your GMAT questions
-                </p>
-                <div className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded inline-block cursor-pointer">
-                  Choose File
-                </div>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            <div className="border border-gray-300 rounded-lg p-8 hover:border-green-400 transition-colors">
-              <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-700 mb-2">
-                Use Sample Data
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Start with sample GMAT questions to see how it works
-              </p>
-              <button
-                onClick={loadSampleData}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded cursor-pointer"
-              >
-                Load Sample Questions
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <button
-              onClick={exportToExcel}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm flex items-center space-x-2 mx-auto cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Excel Template</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <VerbalUploadPage
+        onFileUpload={handleFileUpload}
+        onCreate={handleCreate}
+      />
     );
   }
 
@@ -311,13 +157,17 @@ const VerbalReasoningStructure = () => {
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 pb-4 mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Question Preview
-              </h2>
+              <h2 className="text-xl font-bold text-gray-900">Question Preview</h2>
               <p className="text-gray-600">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </p>
             </div>
+            <button
+              onClick={() => setCurrentView("edit")}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm flex items-center space-x-2"
+            >
+              <span>Back to Edit</span>
+            </button>
           </div>
         </div>
 
@@ -333,9 +183,7 @@ const VerbalReasoningStructure = () => {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    {currentQuestion.question}
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900">{currentQuestion.question}</h3>
                   <div className="space-y-3">
                     {currentQuestion.options.map((option, index) => (
                       <label
@@ -351,9 +199,7 @@ const VerbalReasoningStructure = () => {
                           name={`question-${currentQuestion.id}`}
                           value={index}
                           checked={selectedAnswers[currentQuestion.id] === index}
-                          onChange={() =>
-                            handleAnswerSelect(currentQuestion.id, index)
-                          }
+                          onChange={() => handleAnswerSelect(currentQuestion.id, index)}
                           className="mt-1"
                         />
                         <span className="text-sm">{option}</span>
@@ -361,15 +207,11 @@ const VerbalReasoningStructure = () => {
                     ))}
                   </div>
                   {selectedAnswers[currentQuestion.id] !== undefined &&
-                    selectedAnswers[currentQuestion.id] !==
-                      currentQuestion.correctAnswer && (
+                    selectedAnswers[currentQuestion.id] !== currentQuestion.correctAnswer && (
                       <div className="bg-red-50 p-4 rounded-lg">
-                        <h4 className="font-medium text-red-800 mb-2">
-                          Incorrect Answer
-                        </h4>
+                        <h4 className="font-medium text-red-800 mb-2">Incorrect Answer</h4>
                         <p className="text-red-700 text-sm">
-                          The correct answer is option{" "}
-                          {currentQuestion.correctAnswer + 1}.
+                          The correct answer is option {currentQuestion.correctAnswer + 1}.
                         </p>
                       </div>
                     )}
@@ -385,9 +227,7 @@ const VerbalReasoningStructure = () => {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <h3 className="text-sm text-gray-900">
-                    {currentQuestion.question}
-                  </h3>
+                  <h3 className="text-sm text-gray-900">{currentQuestion.question}</h3>
                   <div className="space-y-3">
                     {currentQuestion.options.map((option, index) => (
                       <label
@@ -403,9 +243,7 @@ const VerbalReasoningStructure = () => {
                           name={`question-${currentQuestion.id}`}
                           value={index}
                           checked={selectedAnswers[currentQuestion.id] === index}
-                          onChange={() =>
-                            handleAnswerSelect(currentQuestion.id, index)
-                          }
+                          onChange={() => handleAnswerSelect(currentQuestion.id, index)}
                           className="mt-1"
                         />
                         <span className="text-sm">{option}</span>
@@ -413,15 +251,11 @@ const VerbalReasoningStructure = () => {
                     ))}
                   </div>
                   {selectedAnswers[currentQuestion.id] !== undefined &&
-                    selectedAnswers[currentQuestion.id] !==
-                      currentQuestion.correctAnswer && (
+                    selectedAnswers[currentQuestion.id] !== currentQuestion.correctAnswer && (
                       <div className="bg-red-50 p-4 rounded-lg">
-                        <h4 className="font-medium text-red-800 mb-2">
-                          Incorrect Answer
-                        </h4>
+                        <h4 className="font-medium text-red-800 mb-2">Incorrect Answer</h4>
                         <p className="text-red-700 text-sm">
-                          The correct answer is option{" "}
-                          {currentQuestion.correctAnswer + 1}.
+                          The correct answer is option {currentQuestion.correctAnswer + 1}.
                         </p>
                       </div>
                     )}
@@ -431,9 +265,7 @@ const VerbalReasoningStructure = () => {
 
             <div className="flex justify-between items-center pt-4">
               <button
-                onClick={() =>
-                  setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))
-                }
+                onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
                 disabled={currentQuestionIndex === 0}
                 className={`flex items-center space-x-2 px-4 py-2 rounded cursor-pointer ${
                   currentQuestionIndex === 0
@@ -451,9 +283,7 @@ const VerbalReasoningStructure = () => {
 
               <button
                 onClick={() =>
-                  setCurrentQuestionIndex(
-                    Math.min(questions.length - 1, currentQuestionIndex + 1)
-                  )
+                  setCurrentQuestionIndex(Math.min(questions.length - 1, currentQuestionIndex + 1))
                 }
                 disabled={currentQuestionIndex === questions.length - 1}
                 className={`flex items-center space-x-2 px-4 py-2 rounded cursor-pointer ${
@@ -464,15 +294,6 @@ const VerbalReasoningStructure = () => {
               >
                 <span>Next</span>
                 <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="pt-4 flex justify-center">
-              <button
-                onClick={() => setCurrentView("edit")}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm cursor-pointer flex items-center space-x-2"
-              >
-                Back to Edit
               </button>
             </div>
           </div>
@@ -487,14 +308,17 @@ const VerbalReasoningStructure = () => {
       <div className="sticky top-0 z-10 bg-blue-50 border-b border-blue-200 p-4">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="font-semibold text-blue-800">
-              GMAT Verbal Question Editor
-            </h3>
+            <h3 className="font-semibold text-blue-800">GMAT Verbal Question Editor</h3>
             <p className="text-blue-700 text-sm">
-              Edit your questions and preview them. {questions.length}{" "}
-              question(s) loaded.
+              Edit your questions and preview them. {questions.length} question(s) loaded.
             </p>
           </div>
+          <button
+            onClick={() => setCurrentView("upload")}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm flex items-center space-x-2"
+          >
+            <span>Back to Home</span>
+          </button>
         </div>
       </div>
 
@@ -502,18 +326,26 @@ const VerbalReasoningStructure = () => {
         {questions.length === 0 ? (
           <div className="text-center py-12">
             <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">
-              No Questions Loaded
-            </h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">No Questions Loaded</h3>
             <p className="text-gray-600 mb-4">
-              Upload an Excel file or load sample data to get started.
+              Create a new question, load sample data, or upload an Excel file to get started.
             </p>
-            <button
-              onClick={() => setCurrentView("upload")}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded cursor-pointer"
-            >
-              Go Back to Upload
-            </button>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={addQuestion}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center space-x-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create New Question</span>
+              </button>
+              <button
+                onClick={handleLoadSampleData}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm flex items-center space-x-2"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Load Sample Data</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -524,11 +356,7 @@ const VerbalReasoningStructure = () => {
                 </h4>
                 <div className="flex space-x-2">
                   <button
-                    onClick={() =>
-                      setCurrentQuestionIndex(
-                        Math.max(0, currentQuestionIndex - 1)
-                      )
-                    }
+                    onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
                     disabled={currentQuestionIndex === 0}
                     className={`p-2 rounded cursor-pointer ${
                       currentQuestionIndex === 0
@@ -540,13 +368,11 @@ const VerbalReasoningStructure = () => {
                   </button>
                   <button
                     onClick={() =>
-                      setCurrentQuestionIndex(
-                        Math.min(questions.length - 1, currentQuestionIndex + 1)
-                      )
+                      setCurrentQuestionIndex(Math.min(questions.length - 1, currentQuestionIndex + 1))
                     }
                     disabled={currentQuestionIndex === questions.length - 1}
                     className={`p-2 rounded cursor-pointer ${
-                      currentQuestionIndex === 1
+                      currentQuestionIndex === questions.length - 1
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-gray-600 hover:bg-gray-700 text-white"
                     }`}
@@ -558,7 +384,7 @@ const VerbalReasoningStructure = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={addQuestion}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center space-x-2 cursor-pointer"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center space-x-2"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add Question</span>
@@ -566,7 +392,7 @@ const VerbalReasoningStructure = () => {
                 <button
                   onClick={() => removeQuestion(currentQuestionIndex)}
                   disabled={questions.length <= 1}
-                  className={`px-4 py-2 rounded text-sm flex items-center space-x-2 cursor-pointer ${
+                  className={`px-4 py-2 rounded text-sm flex items-center space-x-2 ${
                     questions.length <= 1
                       ? "bg-gray-400 cursor-not-allowed text-gray-600"
                       : "bg-red-600 hover:bg-red-700 text-white"
@@ -583,18 +409,10 @@ const VerbalReasoningStructure = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Passage
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Passage</label>
                       <textarea
                         value={currentQuestion.passage}
-                        onChange={(e) =>
-                          updateQuestion(
-                            currentQuestionIndex,
-                            "passage",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => updateQuestion(currentQuestionIndex, "passage", e.target.value)}
                         rows={12}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm"
                         placeholder="Enter the reading comprehension passage here..."
@@ -602,18 +420,10 @@ const VerbalReasoningStructure = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Question
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Question</label>
                       <textarea
                         value={currentQuestion.question}
-                        onChange={(e) =>
-                          updateQuestion(
-                            currentQuestionIndex,
-                            "question",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => updateQuestion(currentQuestionIndex, "question", e.target.value)}
                         rows={3}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm"
                         placeholder="Enter the question here..."
@@ -621,14 +431,10 @@ const VerbalReasoningStructure = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Layout
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Layout</label>
                       <select
                         value={layouts[currentQuestion.id] || "single"}
-                        onChange={(e) =>
-                          setQuestionLayout(currentQuestion.id, e.target.value)
-                        }
+                        onChange={(e) => setQuestionLayout(currentQuestion.id, e.target.value)}
                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm"
                       >
                         <option value="single">Single Column</option>
@@ -639,45 +445,26 @@ const VerbalReasoningStructure = () => {
 
                   <div className="space-y-4">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">
-                        Answer Options
-                      </h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Answer Options</h4>
                       <div className="space-y-3">
                         {currentQuestion.options.map((option, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center space-x-2"
-                          >
+                          <div key={index} className="flex items-center space-x-2">
                             <input
                               type="radio"
                               name={`correct-${currentQuestionIndex}`}
                               checked={currentQuestion.correctAnswer === index}
-                              onChange={() =>
-                                updateQuestion(
-                                  currentQuestionIndex,
-                                  "correctAnswer",
-                                  index
-                                )
-                              }
+                              onChange={() => updateQuestion(currentQuestionIndex, "correctAnswer", index)}
                               className="mt-1"
                             />
                             <input
                               type="text"
                               value={option}
-                              onChange={(e) =>
-                                updateOption(
-                                  currentQuestionIndex,
-                                  index,
-                                  e.target.value
-                                )
-                              }
+                              onChange={(e) => updateOption(currentQuestionIndex, index, e.target.value)}
                               className="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-300"
                               placeholder={`Option ${index + 1}`}
                             />
                             <button
-                              onClick={() =>
-                                removeOption(currentQuestionIndex, index)
-                              }
+                              onClick={() => removeOption(currentQuestionIndex, index)}
                               disabled={currentQuestion.options.length <= 2}
                               className={`p-1 cursor-pointer ${
                                 currentQuestion.options.length <= 2
@@ -694,10 +481,8 @@ const VerbalReasoningStructure = () => {
                       <button
                         onClick={() => addOption(currentQuestionIndex)}
                         disabled={currentQuestion.options.length >= 6}
-                        className={`w-full mt-3 text-blue-600 hover:text-blue-700 text-sm flex items-center justify-center py-2 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-400 transition-colors cursor-pointer ${
-                          currentQuestion.options.length >= 6
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
+                        className={`w-full mt-3 text-blue-600 hover:text-blue-700 text-sm flex items-center justify-center py-2 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-400 transition-colors ${
+                          currentQuestion.options.length >= 6 ? "opacity-50 cursor-not-allowed" : ""
                         }`}
                       >
                         <Plus className="w-4 h-4 mr-1" />
@@ -711,11 +496,11 @@ const VerbalReasoningStructure = () => {
                   </div>
                 </div>
 
-                <div className="pt-4 flex justify-center">
+                <div className="pt-4 flex justify-center space-x-4">
                   <button
                     onClick={() => setCurrentView("preview")}
                     disabled={questions.length === 0}
-                    className={`px-4 py-2 rounded text-sm flex items-center space-x-2 cursor-pointer ${
+                    className={`px-4 py-2 rounded text-sm flex items-center space-x-2 ${
                       questions.length === 0
                         ? "bg-gray-400 cursor-not-allowed text-gray-600"
                         : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -723,6 +508,13 @@ const VerbalReasoningStructure = () => {
                   >
                     <Eye className="w-4 h-4" />
                     <span>Preview Questions</span>
+                  </button>
+                  <button
+                    onClick={handleLoadSampleData}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm flex items-center space-x-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Load Sample Data</span>
                   </button>
                 </div>
               </div>
