@@ -13,6 +13,7 @@ import {
   Filter,
   X,
 } from "lucide-react";
+import Snackbar from "../../components/Snackbar";
 
 const initialQuestions = [
   { id: "Q-101", topic: "Probability", difficulty: "Easy", difficultyLevel: "L1", createdAt: "2025-08-11 10:30 AM" },
@@ -41,6 +42,8 @@ export default function QuantPage() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", type: "success" });
 
   const getDifficultyClass = useCallback((difficulty) => {
     switch (difficulty) {
@@ -66,10 +69,15 @@ export default function QuantPage() {
 
   const handleDelete = useCallback((id) => {
     if (window.confirm(`Are you sure you want to delete Question ${id}?`)) {
-      setQuestions((prev) => prev.filter((q) => q.id !== id));
-      if (selectedQuestion && selectedQuestion.id === id) {
-        setSelectedQuestion(null);
-      }
+      setDeleteLoading(true);
+      setTimeout(() => {
+        setQuestions((prev) => prev.filter((q) => q.id !== id));
+        setSnackbar({ open: true, message: "Question deleted successfully!", type: "success" });
+        setDeleteLoading(false);
+        if (selectedQuestion && selectedQuestion.id === id) {
+          setSelectedQuestion(null);
+        }
+      }, 1200); // Simulate loading
     }
   }, [selectedQuestion]);
 
@@ -132,6 +140,24 @@ export default function QuantPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Loading Overlay */}
+      {deleteLoading && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg px-8 py-6 flex flex-col items-center">
+            <svg className="animate-spin h-8 w-8 text-blue-600 mb-2" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+            </svg>
+            <span className="text-blue-700 font-semibold">Deleting question...</span>
+          </div>
+        </div>
+      )}
+      <Snackbar
+        open={snackbar.open}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">

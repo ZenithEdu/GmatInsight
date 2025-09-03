@@ -5,7 +5,7 @@ import { User, Menu, X, LogOut, Shield, ChevronDown } from 'lucide-react';
 // Navigation items array for maintainability
 const navItems = [
   { path: '/admin', label: 'Home' },
-  { path: '/assessment-vault', label: 'Assessment Vault' },
+  { path: '/assessment-manager', label: 'Assessment Manager' },
   { path: '/question-vault', label: 'Question Vault' },
 ];
 

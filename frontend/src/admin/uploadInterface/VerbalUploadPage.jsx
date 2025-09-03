@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, FilePlus, AlertCircle, Download, ArrowLeft, BookOpen, X } from "lucide-react";
 import * as XLSX from "xlsx";
+import Loading from "../../components/Loading";
+import Snackbar from "../../components/Snackbar";
 
 const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
   const [uploadError, setUploadError] = useState("");
@@ -9,6 +11,7 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
   const fileInputRef = useRef(null);
   const modalRef = useRef(null);
   const navigate = useNavigate();
@@ -35,6 +38,7 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
     if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
       setUploadError("Please upload an Excel file (.xlsx or .xls)");
       setIsUploading(false);
+      setSnackbar({ open: true, message: "Please upload an Excel file (.xlsx or .xls)", type: "error" });
       return;
     }
 
@@ -44,13 +48,13 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-      // Accept all relevant headers for backend, but only show some in UI
+      // Expected Excel headers (order matters):
+      // set_id, type, topic, question, passage, option1, option2, option3, option4, option5, answer, difficulty, level, layout
       const requiredHeaders = [
         "set_id",
-        "questionId",
         "type",
         "topic",
-        "question_text",
+        "question",
         "passage",
         "option1",
         "option2",
@@ -60,13 +64,14 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
         "answer",
         "difficulty",
         "level",
-        "layout"
+        "layout",
       ];
       const headers = jsonData[0];
       const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
       if (missingHeaders.length > 0) {
         setUploadError(`Missing required columns: ${missingHeaders.join(", ")}`);
         setIsUploading(false);
+        setSnackbar({ open: true, message: `Missing required columns: ${missingHeaders.join(", ")}`, type: "error" });
         return;
       }
 
@@ -87,31 +92,31 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
         // correctAnswer: index (0-based) if answer is a number, else find index by value
         let correctAnswer = parseInt(rowObj.answer);
         if (isNaN(correctAnswer)) {
-          correctAnswer = options.findIndex(opt => opt === rowObj.answer);
+          correctAnswer = options.findIndex((opt) => opt === rowObj.answer);
           if (correctAnswer === -1) correctAnswer = 0;
         } else {
           correctAnswer = correctAnswer - 1;
         }
 
         return {
+          id: index + 1, // Temporary ID for frontend
           set_id: rowObj.set_id || "",
-          questionId: rowObj.questionId || "",
           type: rowObj.type || "",
           topic: rowObj.topic || "",
-          question_text: rowObj.question_text || "",
+          question: rowObj.question || "",
           passage: rowObj.passage || "",
           options,
           correctAnswer,
           layout: rowObj.layout || "single",
           difficulty: rowObj.difficulty || "",
           level: rowObj.level || "",
-          // keep all fields for backend, but editor UI will only use passage/question/options/correctAnswer/layout
         };
       }).filter(Boolean);
 
       if (processedQuestions.length === 0) {
         setUploadError("The Excel file appears to be empty or contains invalid data.");
         setIsUploading(false);
+        setSnackbar({ open: true, message: "The Excel file appears to be empty or contains invalid data.", type: "error" });
         return;
       }
 
@@ -120,11 +125,12 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
       setSelectedFile(null);
       fileInputRef.current.value = "";
       setIsModalOpen(false);
-      alert("File uploaded successfully! Preparing to preview the uploaded data.");
+      setSnackbar({ open: true, message: "File uploaded successfully! Preparing to preview the uploaded data.", type: "success" });
       onFileUpload(processedQuestions);
     } catch (error) {
       setUploadError("Error reading the Excel file. Please check the format.");
       setIsUploading(false);
+      setSnackbar({ open: true, message: "Error reading the Excel file. Please check the format.", type: "error" });
       console.error("Excel parsing error:", error);
     }
   };
@@ -136,10 +142,9 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
       const templateData = [
         {
           set_id: "SET_001",
-          questionId: "V-001",
           type: "reading_comprehension",
           topic: "science_passage",
-          question_text: "What is the main idea of the passage?",
+          question: "What is the main idea of the passage?",
           passage: "Sample passage text here...",
           option1: "Option A",
           option2: "Option B",
@@ -148,17 +153,16 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
           option5: "",
           answer: "Option A",
           difficulty: "medium",
-          level: "l1",
-          layout: "single"
+          level: "verbal",
+          layout: "single",
         },
       ];
       const worksheet = XLSX.utils.json_to_sheet(templateData, {
         header: [
           "set_id",
-          "questionId",
           "type",
           "topic",
-          "question_text",
+          "question",
           "passage",
           "option1",
           "option2",
@@ -168,7 +172,7 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
           "answer",
           "difficulty",
           "level",
-          "layout"
+          "layout",
         ],
       });
       const workbook = XLSX.utils.book_new();
@@ -324,7 +328,14 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
                       {isUploading ? (
                         <span className="flex items-center gap-2">
                           <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
                             <path
                               className="opacity-75"
                               fill="currentColor"
@@ -360,6 +371,12 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
           </div>
         )}
       </main>
+      <Snackbar
+        open={snackbar.open}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      />
     </div>
   );
 };

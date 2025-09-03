@@ -9,7 +9,7 @@ export default function Admin() {
   return (
     <>
       <AdminHeader />
-      <div className="min-h-[calc(100vh-6rem)] bg-gradient-to-br from-slate-50 to-blue-50 relative overflow-hidden flex flex-col">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 relative overflow-hidden flex flex-col">
         {/* Background Decorations */}
         <div className="absolute top-10 left-10 w-12 h-12 bg-blue-200 rounded-full opacity-20 blur-xl"></div>
         <div className="absolute bottom-10 right-10 w-12 h-12 bg-indigo-200 rounded-full opacity-20 blur-xl"></div>
@@ -23,8 +23,8 @@ export default function Admin() {
                 <Sparkles className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back!</h2>
-                <p className="text-gray-600 text-sm sm:text-base">Choose a vault to get started.</p>
+                <h2 className="text-3xl font-bold text-blue-700 mb-2">Welcome back!</h2>
+                <p className="text-blue-900 text-sm sm:text-base">Choose a vault to get started.</p>
               </div>
             </div>
           </div>
