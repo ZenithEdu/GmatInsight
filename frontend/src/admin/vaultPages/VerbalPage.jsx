@@ -2,8 +2,6 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
-  ChevronLeft,
-  Plus,
   FileText,
   Eye,
   Trash2,
@@ -12,8 +10,11 @@ import {
   Search,
   Filter,
   X,
+  Plus,
   ChevronRight,
 } from "lucide-react";
+import { RefreshCw } from 'lucide-react';
+
 import Loading from "../../components/Loading";
 import Snackbar from "../../components/Snackbar";
 
@@ -213,6 +214,7 @@ export default function VerbalPage() {
     if (!editedQuestion.options.includes(editedQuestion.answer)) {
       errors.answer = "Correct answer must match one of the options";
     }
+    // explanation is optional, do not validate
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }, [editedQuestion]);
@@ -238,6 +240,7 @@ export default function VerbalPage() {
           difficulty: editedQuestion.difficulty,
           level: editedQuestion.level,
           layout: editedQuestion.layout,
+          explanation: editedQuestion.explanation || "",
         }),
       }
     )
@@ -637,10 +640,13 @@ export default function VerbalPage() {
                   >
                     <div>{q.set_id || "N/A"}</div>
                     <div>{q.questionId}</div>
-                    <div>
+                  
+                    <div className="truncate cursor-default" title={q.type}>
                       {q.type?.replace("_", " ").toUpperCase() || "N/A"}
                     </div>
-                    <div>{q.topic || "N/A"}</div>
+                    <div className="truncate cursor-default" title={q.topic}>
+                      {q.topic || "N/A"}
+                    </div>
                     <div>
                       <span
                         className={`px-2 py-1 rounded text-sm font-medium ${getDifficultyClass(
@@ -656,7 +662,7 @@ export default function VerbalPage() {
                         ? new Date(q.metadata.createdAt).toLocaleDateString()
                         : "N/A"}
                     </div>
-                    <div>
+                    <div className="capitalize">
                       {q.metadata?.source === "regenerated"
                         ? "regenerated"
                         : q.metadata?.source === "excel"
@@ -665,24 +671,25 @@ export default function VerbalPage() {
                     </div>
                     <div className="flex gap-2 items-center">
                       <button
+                        onClick={() => handleRegenerate(q.questionId)}
+                        className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors cursor-pointer"
+                        title="Regenerate"
+                        aria-label={`Regenerate question ${q.questionId}`}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handlePreview(q.questionId)}
-                        className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                        className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors cursor-pointer"
                         title="Preview"
                         aria-label={`Preview question ${q.questionId}`}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleRegenerate(q.questionId)}
-                        className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors"
-                        title="Regenerate"
-                        aria-label={`Regenerate question ${q.questionId}`}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
+                      
                       <button
                         onClick={() => handleDelete(q.questionId)}
-                        className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                        className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors cursor-pointer"
                         title="Delete"
                         aria-label={`Delete question ${q.questionId}`}
                       >
@@ -690,8 +697,8 @@ export default function VerbalPage() {
                       </button>
                     </div>
                   </div>
-                ))
-              ) : (
+                )))
+                : (
                 <div className="px-4 py-8 text-center text-gray-500">
                   <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <p className="mb-2">No questions match your filters</p>
@@ -1159,6 +1166,32 @@ export default function VerbalPage() {
                   )}
                 </div>
               </div>
+
+              {/* Explanation - Collapsible */}
+              {(isEditing || selectedQuestion.explanation) && (
+                <div className="bg-yellow-50 rounded-lg border border-yellow-200 mt-4">
+                  <div className="p-3">
+                    <h4 className="font-medium text-yellow-800 mb-2">
+                      Explanation <span className="text-gray-400">(optional)</span>
+                    </h4>
+                    {isEditing ? (
+                      <textarea
+                        className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        value={editedQuestion.explanation || ""}
+                        onChange={(e) =>
+                          handleEditChange("explanation", e.target.value)
+                        }
+                        rows={3}
+                        placeholder="Enter explanation for the answer (optional)..."
+                      />
+                    ) : (
+                      <p className="text-yellow-700 text-sm whitespace-pre-line">
+                        {selectedQuestion.explanation}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer Actions */}

@@ -65,6 +65,7 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
         "difficulty",
         "level",
         "layout",
+        "explanation", // add explanation as optional column
       ];
       const headers = jsonData[0];
       const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
@@ -110,6 +111,7 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
           layout: rowObj.layout || "single",
           difficulty: rowObj.difficulty || "",
           level: rowObj.level || "",
+          explanation: rowObj.explanation || "", // add explanation field
         };
       }).filter(Boolean);
 
@@ -155,6 +157,7 @@ const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
           difficulty: "medium",
           level: "verbal",
           layout: "single",
+          explanation: "This is a sample explanation for the answer.", // add explanation to template
         },
       ];
       const worksheet = XLSX.utils.json_to_sheet(templateData, {

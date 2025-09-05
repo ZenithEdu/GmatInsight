@@ -1,6 +1,6 @@
 // Importing required modules and components
 import { BrowserRouter, Routes, Route } from "react-router-dom"; // React Router components for navigation
-
+import 'katex/dist/katex.min.css';
 // Public pages
 import Home from "./pages/home.jsx";
 import LoginPage from "./components/login.jsx";
@@ -23,6 +23,7 @@ import QuantPage from "./admin/vaultPages/QuantPage.jsx";
 import VerbalPage from "./admin/vaultPages/VerbalPage.jsx";
 import DataInsightPage from "./admin/vaultPages/DataInsightPage.jsx";
 import DataInsightsUploadPage from "./admin/uploadInterface/DataInsightsUploadPage.jsx";
+import QuantitativeUploadPage from "./admin/uploadInterface/QuantitativeUploadPage.jsx";
 
 // Admin: Data Insight Question Structures
 import MultiSourceStructure from "./admin/dataInsightStructures/MultiSourceStructure.jsx";
@@ -36,6 +37,7 @@ import Admin from "./admin/Admin.jsx";
 import QuestionVault from "./admin/vault/QuestionVault.jsx";
 import VerbalReasoningStructure from "./admin/verbalStructure/VerbalReasoningStructure.jsx";
 import AssessmentManager from "./admin/assessments/AssessmentManager.jsx";
+
 
 function App() {
   return (
@@ -76,7 +78,8 @@ function App() {
           <Route
             path="/data-insight-upload-page"
             element={<DataInsightsUploadPage />}
-          /> 
+          />
+          <Route path="/quant/quantitative-upload-page" element={<QuantitativeUploadPage />} />
 
           {/* Data Insight: Structures */}
           <Route path="/multi-source" element={<MultiSourceStructure />} /> {/* Multi-source reasoning format */}

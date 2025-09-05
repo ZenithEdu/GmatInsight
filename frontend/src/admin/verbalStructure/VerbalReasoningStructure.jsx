@@ -76,6 +76,7 @@ const VerbalReasoningStructure = () => {
         "helps Heliconius butterflies locate Passiflora vines",
       ],
       correctAnswer: 4,
+      explanation: "Passiflora leaf chemistry helps Heliconius butterflies locate Passiflora vines.", // sample explanation
     },
     {
       id: 2,
@@ -91,6 +92,7 @@ const VerbalReasoningStructure = () => {
         "It is a dynamic, continuing process that may produce further variations in the plants and butterflies.",
       ],
       correctAnswer: 4,
+      explanation: "The author sees coevolution as a dynamic, ongoing process.", // sample explanation
     },
   ];
 
@@ -105,7 +107,10 @@ const VerbalReasoningStructure = () => {
   }, [currentView]);
 
   const handleFileUpload = (processedQuestions) => {
-    setQuestions(processedQuestions);
+    setQuestions(processedQuestions.map(q => ({
+      ...q,
+      explanation: q.explanation || "", // ensure explanation field
+    })));
     setLayouts(
       processedQuestions.reduce(
         (acc, q) => ({
@@ -206,6 +211,7 @@ const VerbalReasoningStructure = () => {
       options: ["Option 1", "Option 2", "Option 3", "Option 4"],
       correctAnswer: 0,
       layout: "single",
+      explanation: "", // add explanation field
     };
     setQuestions([...questions, newQuestion]);
     setLayouts({ ...layouts, [newQuestion.id]: "single" });
@@ -299,6 +305,7 @@ const VerbalReasoningStructure = () => {
         difficulty: q.difficulty || "easy",
         level: q.level || "verbal",
         layout: q.layout || layouts[q.id] || "single",
+        explanation: q.explanation || "",
         metadata: { createdAt: new Date() },
       }));
       const res = await fetch(`${API_URL}/verbalVault/VerbalVaultQuestions`, {
@@ -511,6 +518,15 @@ const VerbalReasoningStructure = () => {
                       </div>
                     )}
                 </div>
+              </div>
+            )}
+
+            {currentQuestion.explanation && (
+              <div className="bg-yellow-50 p-4 rounded-lg mt-4">
+                <h4 className="font-medium text-yellow-800 mb-2">Explanation</h4>
+                <p className="text-yellow-700 text-sm whitespace-pre-line">
+                  {currentQuestion.explanation}
+                </p>
               </div>
             )}
 
@@ -868,6 +884,25 @@ const VerbalReasoningStructure = () => {
                         <option value="single">Single</option>
                         <option value="double">Double</option>
                       </select>
+                    </div>
+                    {/* Explanation */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Explanation <span className="text-gray-400">(optional)</span>
+                      </label>
+                      <textarea
+                        value={currentQuestion.explanation || ""}
+                        onChange={(e) =>
+                          updateQuestion(
+                            currentQuestionIndex,
+                            "explanation",
+                            e.target.value
+                          )
+                        }
+                        rows={4}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm"
+                        placeholder="Enter explanation for the answer (optional)..."
+                      />
                     </div>
                   </div>
 

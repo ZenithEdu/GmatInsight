@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
-  ChevronLeft,
   Plus,
   FileText,
   Eye,
@@ -12,46 +11,64 @@ import {
   Search,
   Filter,
   X,
+  RefreshCw,
 } from "lucide-react";
+import Loading from "../../components/Loading";
 import Snackbar from "../../components/Snackbar";
 
-const initialQuestions = [
-  { id: "Q-101", topic: "Probability", difficulty: "Easy", difficultyLevel: "L1", createdAt: "2025-08-11 10:30 AM" },
-  { id: "Q-102", topic: "Algebra", difficulty: "Medium", difficultyLevel: "L3", createdAt: "2025-08-09 02:15 PM" },
-  { id: "Q-103", topic: "Statistics", difficulty: "Hard", difficultyLevel: "L5", createdAt: "2025-08-06 05:45 PM" },
-  { id: "Q-104", topic: "Geometry", difficulty: "Medium", difficultyLevel: "L2", createdAt: "2025-08-05 09:00 AM" },
-  { id: "Q-105", topic: "Number Theory", difficulty: "Easy", difficultyLevel: "L1", createdAt: "2025-08-04 11:20 AM" },
-  { id: "Q-106", topic: "Linear Algebra", difficulty: "Hard", difficultyLevel: "L4", createdAt: "2025-08-03 03:10 PM" },
-  { id: "Q-107", topic: "Trigonometry", difficulty: "Medium", difficultyLevel: "L2", createdAt: "2025-08-02 04:55 PM" },
-  { id: "Q-108", topic: "Calculus", difficulty: "Hard", difficultyLevel: "L5", createdAt: "2025-08-01 08:45 AM" },
-];
-
 const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
-const difficultyLevelOptions = ["All", "L1", "L2", "L3", "L4", "L5"];
+const levelOptions = ["All", "L1", "L2", "L3", "L4", "L5"];
 
 export default function QuantPage() {
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState(initialQuestions);
+  const [questions, setQuestions] = useState([]);
   const [filters, setFilters] = useState({
+    set_id: "",
     id: "",
     topic: "",
     difficulty: "",
-    difficultyLevel: "",
+    level: "",
     createdAt: "",
   });
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", type: "success" });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedQuestion, setEditedQuestion] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, questionId: null });
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  // Fetch quant questions from backend
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API_URL}/quantVault/QuantVaultQuestions`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch questions");
+        return res.json();
+      })
+      .then((data) => {
+        setQuestions(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setSnackbar({ open: true, message: err.message, type: "error" });
+        setQuestions([]);
+        setLoading(false);
+      });
+  }, []);
 
   const getDifficultyClass = useCallback((difficulty) => {
-    switch (difficulty) {
-      case "Easy":
+    switch (difficulty?.toLowerCase()) {
+      case "easy":
         return "bg-green-100 text-green-700";
-      case "Medium":
+      case "medium":
         return "bg-yellow-100 text-yellow-700";
-      case "Hard":
+      case "hard":
         return "bg-red-100 text-red-700";
       default:
         return "bg-gray-100 text-gray-700";
@@ -59,27 +76,147 @@ export default function QuantPage() {
   }, []);
 
   const handlePreview = useCallback((id) => {
-    const question = questions.find((q) => q.id === id);
+    const question = questions.find((q) => q.questionId === id);
     setSelectedQuestion(question);
+    setEditedQuestion({ ...question, options: question.options || [] });
+    setIsEditing(false);
+    setFormErrors({});
+    setHasUnsavedChanges(false);
   }, [questions]);
 
   const closePreview = useCallback(() => {
+    if (isEditing && hasUnsavedChanges) {
+      if (!window.confirm("You have unsaved changes. Are you sure you want to close?")) {
+        return;
+      }
+    }
     setSelectedQuestion(null);
-  }, []);
+    setEditedQuestion(null);
+    setIsEditing(false);
+    setFormErrors({});
+    setHasUnsavedChanges(false);
+  }, [isEditing, hasUnsavedChanges]);
 
-  const handleDelete = useCallback((id) => {
+  const handleDelete = useCallback(async (id) => {
     if (window.confirm(`Are you sure you want to delete Question ${id}?`)) {
       setDeleteLoading(true);
-      setTimeout(() => {
-        setQuestions((prev) => prev.filter((q) => q.id !== id));
-        setSnackbar({ open: true, message: "Question deleted successfully!", type: "success" });
-        setDeleteLoading(false);
-        if (selectedQuestion && selectedQuestion.id === id) {
-          setSelectedQuestion(null);
+      setSnackbar({ open: false, message: "", type: "success" });
+      try {
+        const res = await fetch(`${API_URL}/quantVault/QuantVaultQuestions/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to delete question");
         }
-      }, 1200); // Simulate loading
+        // Re-fetch questions after delete
+        const refreshed = await fetch(`${API_URL}/quantVault/QuantVaultQuestions`);
+        if (!refreshed.ok) throw new Error("Failed to reload questions");
+        const data = await refreshed.json();
+        setQuestions(data);
+        setSnackbar({ open: true, message: "Question deleted successfully!", type: "success" });
+        if (selectedQuestion && selectedQuestion.questionId === id) {
+          closePreview();
+        }
+      } catch (err) {
+        setSnackbar({ open: true, message: err.message, type: "error" });
+      } finally {
+        setDeleteLoading(false);
+      }
     }
-  }, [selectedQuestion]);
+  }, [selectedQuestion, API_URL, closePreview]);
+
+  const handleEditChange = useCallback((key, value) => {
+    setEditedQuestion((prev) => ({ ...prev, [key]: value }));
+    setHasUnsavedChanges(true);
+    setFormErrors((prev) => ({ ...prev, [key]: "" }));
+  }, []);
+
+  const handleOptionChange = useCallback((index, value) => {
+    setEditedQuestion((prev) => {
+      const newOptions = [...prev.options];
+      newOptions[index] = value;
+      return { ...prev, options: newOptions };
+    });
+    setHasUnsavedChanges(true);
+    setFormErrors((prev) => ({ ...prev, options: "" }));
+  }, []);
+
+  const addOption = useCallback(() => {
+    setEditedQuestion((prev) => ({
+      ...prev,
+      options: [...(prev.options || []), ""],
+    }));
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const removeOption = useCallback((index) => {
+    setEditedQuestion((prev) => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index),
+    }));
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const validateForm = useCallback(() => {
+    const errors = {};
+    if (!editedQuestion.set_id) errors.set_id = "Set ID is required";
+    if (!editedQuestion.topic) errors.topic = "Topic is required";
+    if (!editedQuestion.question) errors.question = "Question is required";
+    if (!editedQuestion.answer) errors.answer = "Correct answer is required";
+    if (!editedQuestion.difficulty) errors.difficulty = "Difficulty is required";
+    if (!editedQuestion.level) errors.level = "Level is required";
+    if (!editedQuestion.options || editedQuestion.options.length < 2) {
+      errors.options = "At least 2 options are required";
+    } else if (editedQuestion.options.some((opt) => !opt)) {
+      errors.options = "All options must be filled";
+    }
+    if (!editedQuestion.options.includes(editedQuestion.answer)) {
+      errors.answer = "Correct answer must match one of the options";
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [editedQuestion]);
+
+  const handleSave = useCallback(() => {
+    if (!validateForm()) {
+      alert("Please fix the errors before saving.");
+      return;
+    }
+    fetch(
+      `${API_URL}/quantVault/QuantVaultQuestions/${editedQuestion.questionId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          set_id: editedQuestion.set_id,
+          topic: editedQuestion.topic,
+          question: editedQuestion.question,
+          options: editedQuestion.options,
+          answer: editedQuestion.answer,
+          difficulty: editedQuestion.difficulty,
+          level: editedQuestion.level,
+          explanation: editedQuestion.explanation || "",
+        }),
+      }
+    )
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to update question");
+        return res.json();
+      })
+      .then((updatedQuestion) => {
+        setQuestions((prev) =>
+          prev.map((q) =>
+            q.questionId === updatedQuestion.questionId ? updatedQuestion : q
+          )
+        );
+        setSelectedQuestion(updatedQuestion);
+        setIsEditing(false);
+        setHasUnsavedChanges(false);
+        alert("Question updated successfully!");
+      })
+      .catch((err) => {
+        alert(`Error: ${err.message}`);
+      });
+  }, [editedQuestion, validateForm]);
 
   const handleSort = useCallback((key) => {
     setSortConfig((prev) => ({
@@ -92,7 +229,28 @@ export default function QuantPage() {
     return questions.filter((q) =>
       Object.entries(filters).every(([key, value]) => {
         if (!value) return true;
-        return String(q[key]).toLowerCase().includes(value.toLowerCase());
+        if (key === "createdAt") {
+          const filterDate = new Date(value).toISOString().split("T")[0];
+          const questionDate = q.metadata?.createdAt
+            ? new Date(q.metadata.createdAt).toISOString().split("T")[0]
+            : "";
+          return questionDate.includes(filterDate);
+        }
+        if (key === "id")
+          return String(q.questionId || "")
+            .toLowerCase()
+            .includes(value.toLowerCase());
+        if (key === "set_id")
+          return String(q.set_id || "")
+            .toLowerCase()
+            .includes(value.toLowerCase());
+        if (key === "level")
+          return String(q.level || "")
+            .toLowerCase()
+            .includes(value.toLowerCase());
+        return String(q[key] || "")
+          .toLowerCase()
+          .includes(value.toLowerCase());
       })
     );
   }, [questions, filters]);
@@ -103,12 +261,12 @@ export default function QuantPage() {
     return [...filteredQuestions].sort((a, b) => {
       const aVal =
         sortConfig.key === "createdAt"
-          ? new Date(a[sortConfig.key])
-          : a[sortConfig.key];
+          ? new Date(a.metadata?.createdAt || 0)
+          : a[sortConfig.key] || "";
       const bVal =
         sortConfig.key === "createdAt"
-          ? new Date(b[sortConfig.key])
-          : b[sortConfig.key];
+          ? new Date(b.metadata?.createdAt || 0)
+          : b[sortConfig.key] || "";
 
       if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
@@ -121,7 +279,8 @@ export default function QuantPage() {
     return sortConfig.direction === "asc" ? (
       <ChevronUp className="w-4 h-4 inline" />
     ) : (
-      <ChevronDown className="w-4 h-4 inline" />);
+      <ChevronDown className="w-4 h-4 inline" />
+    );
   }, [sortConfig]);
 
   const updateFilter = useCallback((key, value) => {
@@ -130,13 +289,46 @@ export default function QuantPage() {
 
   const resetFilters = useCallback(() => {
     setFilters({
+      set_id: "",
       id: "",
       topic: "",
       difficulty: "",
-      difficultyLevel: "",
+      level: "",
       createdAt: "",
     });
   }, []);
+
+  const handleRegenerate = useCallback((id) => {
+    setConfirmDialog({ open: true, questionId: id });
+  }, []);
+
+  const confirmRegenerate = useCallback(async () => {
+    if (!confirmDialog.questionId) return;
+    setConfirmDialog({ open: false, questionId: null });
+    setSnackbar({ open: false, message: "", type: "success" });
+    try {
+      const res = await fetch(
+        `${API_URL}/quantVault/QuantVaultQuestions/${confirmDialog.questionId}/regenerate`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to regenerate question");
+      }
+      // Reload questions after regeneration
+      const refreshed = await fetch(`${API_URL}/quantVault/QuantVaultQuestions`);
+      if (!refreshed.ok) throw new Error("Failed to reload questions");
+      const data = await refreshed.json();
+      setQuestions(data);
+      setSnackbar({
+        open: true,
+        message: "Question regenerated and added to the end",
+        type: "success",
+      });
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, type: "error" });
+    }
+  }, [API_URL, confirmDialog.questionId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -152,6 +344,7 @@ export default function QuantPage() {
           </div>
         </div>
       )}
+      {loading && <Loading overlay text="Loading questions..." />}
       <Snackbar
         open={snackbar.open}
         message={snackbar.message}
@@ -179,7 +372,7 @@ export default function QuantPage() {
               Filters
             </button>
             <button
-              onClick={() => navigate("/quant/new")}
+              onClick={() => navigate("/quant/quantitative-upload-page")}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -194,7 +387,18 @@ export default function QuantPage() {
         {/* Filter Panel */}
         {showFilters && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Set ID
+                </label>
+                <input
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  placeholder="Search Set ID"
+                  value={filters.set_id}
+                  onChange={(e) => updateFilter("set_id", e.target.value)}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Question ID
@@ -242,10 +446,10 @@ export default function QuantPage() {
                 </label>
                 <select
                   className="w-full px-3 py-2 border rounded-lg text-sm"
-                  value={filters.difficultyLevel}
-                  onChange={(e) => updateFilter("difficultyLevel", e.target.value)}
+                  value={filters.level}
+                  onChange={(e) => updateFilter("level", e.target.value)}
                 >
-                  {difficultyLevelOptions.map((option) => (
+                  {levelOptions.map((option) => (
                     <option key={option} value={option === "All" ? "" : option}>
                       {option}
                     </option>
@@ -261,7 +465,7 @@ export default function QuantPage() {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Created Date
@@ -280,68 +484,66 @@ export default function QuantPage() {
         {/* Questions Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Table Header */}
-          <div className="hidden md:grid grid-cols-[1fr_1.8fr_0.8fr_0.6fr_1.2fr_0.8fr] bg-gray-50 px-4 py-3 border-b border-gray-200 text-sm font-semibold text-gray-600">
-            <div
-              className="cursor-pointer flex items-center pl-2"
-              onClick={() => handleSort("id")}
-            >
-              Question ID {getSortIcon("id")}
+          <div className="hidden md:grid grid-cols-[1fr_1fr_1.5fr_0.8fr_0.8fr_1fr_0.8fr] bg-gray-50 px-4 py-3 border-b border-gray-200 text-sm font-semibold text-gray-600">
+            <div className="cursor-pointer" onClick={() => handleSort("set_id")}>
+              Set ID {getSortIcon("set_id")}
             </div>
-            <div
-              className="cursor-pointer flex items-center"
-              onClick={() => handleSort("topic")}
-            >
+            <div className="cursor-pointer" onClick={() => handleSort("questionId")}>
+              Question ID {getSortIcon("questionId")}
+            </div>
+            <div className="cursor-pointer" onClick={() => handleSort("topic")}>
               Topic {getSortIcon("topic")}
             </div>
-            <div className="flex items-center">Difficulty</div>
-            <div
-              className="cursor-pointer flex items-center"
-              onClick={() => handleSort("difficultyLevel")}
-            >
-              Level {getSortIcon("difficultyLevel")}
+            <div className="cursor-pointer" onClick={() => handleSort("difficulty")}>
+              Difficulty {getSortIcon("difficulty")}
             </div>
-            <div
-              className="cursor-pointer flex items-center"
-              onClick={() => handleSort("createdAt")}
-            >
+            <div className="cursor-pointer" onClick={() => handleSort("level")}>
+              Level {getSortIcon("level")}
+            </div>
+            <div className="cursor-pointer" onClick={() => handleSort("createdAt")}>
               Created At {getSortIcon("createdAt")}
             </div>
-            <div className="flex items-center">Actions</div>
+            <div>Actions</div>
           </div>
 
           {/* Table Rows */}
           {sortedQuestions.length > 0 ? (
             sortedQuestions.map((q) => (
               <div
-                key={q.id}
-                className="grid grid-cols-1 md:grid-cols-[1fr_1.8fr_0.8fr_0.6fr_1.2fr_0.8fr] px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors text-sm"
+                key={q.questionId}
+                className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1.5fr_0.8fr_0.8fr_1fr_0.8fr] px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors text-sm"
               >
-                <div className="flex items-center py-2 md:py-0">
-                  <FileText className="w-4 h-4 text-blue-600 mr-2" />
-                  <span className="font-medium" title={q.id}>{q.id}</span>
-                </div>
+                <div>{q.set_id || "N/A"}</div>
+                <div>{q.questionId}</div>
                 <div className="truncate py-2 md:py-0" title={q.topic}>{q.topic}</div>
-                <div className="py-2 md:py-0">
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyClass(
-                      q.difficulty
-                    )}`}
-                  >
+                <div>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyClass(q.difficulty)}`}>
                     {q.difficulty}
                   </span>
                 </div>
-                <div className="py-2 md:py-0">{q.difficultyLevel}</div>
-                <div className="text-gray-500 py-2 md:py-0">{q.createdAt}</div>
+                <div>{q.level}</div>
+                <div className="text-gray-500 py-2 md:py-0">
+                  {q.metadata?.createdAt
+                    ? new Date(q.metadata.createdAt).toLocaleDateString()
+                    : "N/A"}
+                </div>
                 <div className="flex gap-2 items-center py-2 md:py-0">
                   <button
-                    onClick={() => handlePreview(q.id)}
+                    onClick={() => handleRegenerate(q.questionId)}
+                    className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors"
+                    title="Regenerate"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handlePreview(q.questionId)}
                     className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                     title="Preview"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(q.id)}
+                    onClick={() => handleDelete(q.questionId)}
                     className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                     title="Delete"
                   >
@@ -372,9 +574,9 @@ export default function QuantPage() {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">
-                    {selectedQuestion.id} - {selectedQuestion.topic}
+                    {selectedQuestion.questionId} - {selectedQuestion.topic}
                   </h3>
-                  <p className="text-gray-600">Quantitative Reasoning</p>
+                  <p className="text-gray-600">{selectedQuestion.type || "Quantitative Reasoning"}</p>
                 </div>
                 <button
                   onClick={closePreview}
@@ -387,36 +589,83 @@ export default function QuantPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <h4 className="font-medium text-gray-700 mb-1">Difficulty</h4>
-                  <span
-                    className={`px-2 py-1 rounded text-sm font-medium ${getDifficultyClass(
-                      selectedQuestion.difficulty
-                    )}`}
-                  >
-                    {selectedQuestion.difficulty} ({selectedQuestion.difficultyLevel})
+                  <span className={`px-2 py-1 rounded text-sm font-medium ${getDifficultyClass(selectedQuestion.difficulty)}`}>
+                    {selectedQuestion.difficulty} ({selectedQuestion.level})
                   </span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <h4 className="font-medium text-gray-700 mb-1">Created</h4>
-                  <p className="text-sm text-gray-600">{selectedQuestion.createdAt}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedQuestion.metadata?.createdAt
+                      ? new Date(selectedQuestion.metadata.createdAt).toLocaleString()
+                      : "N/A"}
+                  </p>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
-                  <h4 className="font-medium text-gray-700 mb-1">Topic</h4>
-                  <span>{selectedQuestion.topic}</span>
+                  <h4 className="font-medium text-gray-700 mb-1">Set ID</h4>
+                  <span>{selectedQuestion.set_id}</span>
                 </div>
               </div>
 
               <div className="mt-6">
-                <h4 className="font-medium text-gray-700 mb-2">Question Preview</h4>
+                <h4 className="font-medium text-gray-700 mb-2">Question</h4>
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <p className="text-gray-600">
-                    Preview for {selectedQuestion.topic} question (ID: {selectedQuestion.id}) would appear here.
-                  </p>
+                  <p className="text-gray-800">{selectedQuestion.question}</p>
                 </div>
               </div>
 
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-700 mb-2">Answer Options</h4>
+                <div className="space-y-2">
+                  {selectedQuestion.options?.map((option, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-2 p-2 rounded ${
+                        selectedQuestion.answer === option
+                          ? "bg-green-200 border border-green-300"
+                          : "bg-white border border-gray-200"
+                      }`}
+                    >
+                      <span
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                          selectedQuestion.answer === option
+                            ? "bg-green-600 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {String.fromCharCode(65 + idx)}
+                      </span>
+                      <span
+                        className={`text-sm ${
+                          selectedQuestion.answer === option
+                            ? "font-semibold text-gray-800"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {option}
+                      </span>
+                      {selectedQuestion.answer === option && (
+                        <span className="ml-auto text-xs bg-green-600 text-white px-2 py-1 rounded">
+                          Correct
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {selectedQuestion.explanation && (
+                <div className="mt-6 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <h4 className="font-medium text-yellow-800 mb-2">Explanation</h4>
+                  <p className="text-yellow-700 text-sm whitespace-pre-line">
+                    {selectedQuestion.explanation}
+                  </p>
+                </div>
+              )}
+
               <div className="mt-6 flex justify-end gap-3">
                 <button
-                  onClick={() => handleDelete(selectedQuestion.id)}
+                  onClick={() => handleDelete(selectedQuestion.questionId)}
                   className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                 >
                   Delete Question
