@@ -1,1 +1,6 @@
-"fixed verbal page icons and classes, added explanation in verbal vault questions, added latex for quant and quant question creation completely setup"
+quant me bulk upload ke liye backend fix karna hai jisse excel ke saare fields ko backend match kare.
+latex guide ke colors thode sahi karo, 
+have to fix quant vault page all functionality.
+add consistency in quant vault page similar to verbal vault page.
+routes - /quant/quantitativeuploadpage same for others.
+quantitativeuploadpage se jab mai single question bana ke upload karta hu toh ho jaata hai but jab excel se upload kar raha hu toh issue aa raha h fix it completely
