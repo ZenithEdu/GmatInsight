@@ -1,6 +1,3 @@
-quant me bulk upload ke liye backend fix karna hai jisse excel ke saare fields ko backend match kare.
-latex guide ke colors thode sahi karo, 
-have to fix quant vault page all functionality.
-add consistency in quant vault page similar to verbal vault page.
-routes - /quant/quantitativeuploadpage same for others.
-quantitativeuploadpage se jab mai single question bana ke upload karta hu toh ho jaata hai but jab excel se upload kar raha hu toh issue aa raha h fix it completely
+"fixed verbal, quant vault upload and fixed ui ux, fixed latex guide ui, added separate bulk upload for quant and verbal, added a new component named dialog"
+
+loading and snackbar should use in every page.

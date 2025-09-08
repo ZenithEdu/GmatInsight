@@ -1,385 +1,614 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FilePlus, AlertCircle, Download, ArrowLeft, BookOpen, X } from "lucide-react";
-import * as XLSX from "xlsx";
-import Loading from "../../components/Loading";
+import {
+  Upload,
+  FileText,
+  BookOpen,
+  Save,
+  Trash2,
+  ArrowLeft,
+  Play,
+  Hash,
+  Type,
+  Star,
+  TrendingUp,
+  HelpCircle,
+} from "lucide-react";
 import Snackbar from "../../components/Snackbar";
+import Loading from "../../components/Loading";
+import VerbalBulkUpload from "./VerbalBulkUpload";
 
-const VerbalUploadPage = ({ onFileUpload, onCreate }) => {
-  const [uploadError, setUploadError] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
-  const fileInputRef = useRef(null);
-  const modalRef = useRef(null);
+const VerbalUploadPage = () => {
+  const [activeTab, setActiveTab] = useState("single");
+  const [singleQuestion, setSingleQuestion] = useState({
+    question: "",
+    options: ["", "", "", "", ""],
+    correctAnswer: "",
+    explanation: "",
+    difficulty: "easy",
+    topic: "",
+    type: "",
+    level: "",
+    passage: "",
+    layout: "single",
+  });
+  const [setId, setSetId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    type: "success",
+  });
   const navigate = useNavigate();
 
-  // Handle Escape key to close modal
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape" && isModalOpen) {
-        setIsModalOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isModalOpen]);
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const topicsList = [
+    "Reading Comprehension",
+    "Critical Reasoning",
+    "Sentence Correction",
+    "Grammar",
+    "Vocabulary",
+    "Logic",
+    "Rhetoric",
+  ];
 
-    setSelectedFile(file);
-    setUploadError("");
-    setIsUploading(true);
+  const questionTypes = [
+    "Main Idea",
+    "Detail",
+    "Inference",
+    "Purpose",
+    "Strengthen",
+    "Weaken",
+    "Assumption",
+    "Evaluate",
+    "Complete Passage",
+    "Sentence Correction",
+  ];
+  const levels = ["L1", "L2", "L3", "L4", "L5"];
 
-    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-      setUploadError("Please upload an Excel file (.xlsx or .xls)");
-      setIsUploading(false);
-      setSnackbar({ open: true, message: "Please upload an Excel file (.xlsx or .xls)", type: "error" });
+
+  const handleSingleQuestionChange = (field, value) => {
+    setSingleQuestion((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleOptionChange = (index, value) => {
+    const newOptions = [...singleQuestion.options];
+    newOptions[index] = value;
+    setSingleQuestion((prev) => ({
+      ...prev,
+      options: newOptions,
+    }));
+  };
+
+  // Single question save (POST to backend)
+  const saveQuestion = async () => {
+    if (!setId.trim()) {
+      setSnackbar({
+        open: true,
+        message: "Please enter Set ID",
+        type: "error",
+      });
       return;
     }
-
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-      // Expected Excel headers (order matters):
-      // set_id, type, topic, question, passage, option1, option2, option3, option4, option5, answer, difficulty, level, layout
-      const requiredHeaders = [
-        "set_id",
-        "type",
-        "topic",
-        "question",
-        "passage",
-        "option1",
-        "option2",
-        "option3",
-        "option4",
-        "option5",
-        "answer",
-        "difficulty",
-        "level",
-        "layout",
-        "explanation", // add explanation as optional column
-      ];
-      const headers = jsonData[0];
-      const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
-      if (missingHeaders.length > 0) {
-        setUploadError(`Missing required columns: ${missingHeaders.join(", ")}`);
-        setIsUploading(false);
-        setSnackbar({ open: true, message: `Missing required columns: ${missingHeaders.join(", ")}`, type: "error" });
-        return;
-      }
-
-      const processedQuestions = jsonData.slice(1).map((row, index) => {
-        const rowObj = headers.reduce((obj, header, i) => {
-          obj[header] = row[i];
-          return obj;
-        }, {});
-
-        const options = [];
-        for (let i = 1; i <= 5; i++) {
-          const optionValue = rowObj[`option${i}`];
-          if (optionValue && optionValue.toString().trim() !== "") {
-            options.push(optionValue.toString().trim());
-          }
-        }
-
-        // correctAnswer: index (0-based) if answer is a number, else find index by value
-        let correctAnswer = parseInt(rowObj.answer);
-        if (isNaN(correctAnswer)) {
-          correctAnswer = options.findIndex((opt) => opt === rowObj.answer);
-          if (correctAnswer === -1) correctAnswer = 0;
-        } else {
-          correctAnswer = correctAnswer - 1;
-        }
-
-        return {
-          id: index + 1, // Temporary ID for frontend
-          set_id: rowObj.set_id || "",
-          type: rowObj.type || "",
-          topic: rowObj.topic || "",
-          question: rowObj.question || "",
-          passage: rowObj.passage || "",
-          options,
-          correctAnswer,
-          layout: rowObj.layout || "single",
-          difficulty: rowObj.difficulty || "",
-          level: rowObj.level || "",
-          explanation: rowObj.explanation || "", // add explanation field
-        };
-      }).filter(Boolean);
-
-      if (processedQuestions.length === 0) {
-        setUploadError("The Excel file appears to be empty or contains invalid data.");
-        setIsUploading(false);
-        setSnackbar({ open: true, message: "The Excel file appears to be empty or contains invalid data.", type: "error" });
-        return;
-      }
-
-      setUploadError("");
-      setIsUploading(false);
-      setSelectedFile(null);
-      fileInputRef.current.value = "";
-      setIsModalOpen(false);
-      setSnackbar({ open: true, message: "File uploaded successfully! Preparing to preview the uploaded data.", type: "success" });
-      onFileUpload(processedQuestions);
-    } catch (error) {
-      setUploadError("Error reading the Excel file. Please check the format.");
-      setIsUploading(false);
-      setSnackbar({ open: true, message: "Error reading the Excel file. Please check the format.", type: "error" });
-      console.error("Excel parsing error:", error);
-    }
-  };
-
-  const exportToExcel = () => {
-    try {
-      setIsExporting(true);
-      console.log("Exporting default Excel template");
-      const templateData = [
-        {
-          set_id: "SET_001",
-          type: "reading_comprehension",
-          topic: "science_passage",
-          question: "What is the main idea of the passage?",
-          passage: "Sample passage text here...",
-          option1: "Option A",
-          option2: "Option B",
-          option3: "Option C",
-          option4: "Option D",
-          option5: "",
-          answer: "Option A",
-          difficulty: "medium",
-          level: "verbal",
-          layout: "single",
-          explanation: "This is a sample explanation for the answer.", // add explanation to template
-        },
-      ];
-      const worksheet = XLSX.utils.json_to_sheet(templateData, {
-        header: [
-          "set_id",
-          "type",
-          "topic",
-          "question",
-          "passage",
-          "option1",
-          "option2",
-          "option3",
-          "option4",
-          "option5",
-          "answer",
-          "difficulty",
-          "level",
-          "layout",
-        ],
+    if (!singleQuestion.question.trim()) {
+      setSnackbar({
+        open: true,
+        message: "Please enter a question",
+        type: "error",
       });
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "GMAT Questions");
-      const timestamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0];
-      XLSX.writeFile(workbook, `gmat_verbal_template_${timestamp}.xlsx`);
-      alert("Excel template downloaded successfully!");
-    } catch (error) {
-      console.error("Error exporting Excel template:", error);
-      alert("Failed to download the Excel template. Please try again.");
+      return;
+    }
+    if (!singleQuestion.correctAnswer) {
+      setSnackbar({
+        open: true,
+        message: "Please select the correct answer",
+        type: "error",
+      });
+      return;
+    }
+    if (!singleQuestion.topic) {
+      setSnackbar({
+        open: true,
+        message: "Please select a topic",
+        type: "error",
+      });
+      return;
+    }
+    if (!singleQuestion.type) {
+      setSnackbar({
+        open: true,
+        message: "Please select a question type",
+        type: "error",
+      });
+      return;
+    }
+ if (!singleQuestion.level) {
+      setSnackbar({
+        open: true,
+        message: "Please select a level",
+        type: "error",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      // Map correctAnswer (A/B/C/D/E) to option value
+      const answerIdx = ["A", "B", "C", "D", "E"].indexOf(
+        singleQuestion.correctAnswer
+      );
+      const payload = {
+        set_id: setId,
+        topic: singleQuestion.topic,
+        type: singleQuestion.type,
+        question: singleQuestion.question,
+        passage: singleQuestion.passage || "",
+        options: singleQuestion.options,
+        answer: singleQuestion.options[answerIdx],
+        difficulty: singleQuestion.difficulty,
+        level: singleQuestion.level,
+        layout: singleQuestion.layout,
+        explanation: singleQuestion.explanation || "",
+      };
+      const res = await fetch(`${API_URL}/verbalVault/VerbalVaultQuestions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to save question");
+      }
+      setSnackbar({
+        open: true,
+        message: "Question saved successfully!",
+        type: "success",
+      });
+      clearForm();
+      setSetId("");
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, type: "error" });
     } finally {
-      setIsExporting(false);
+      setLoading(false);
     }
   };
+
+  const clearForm = () => {
+    setSingleQuestion({
+      question: "",
+      options: ["", "", "", "", ""],
+      correctAnswer: "",
+      explanation: "",
+      difficulty: "easy",
+      topic: "",
+      type: "",
+      level: "",
+      passage: "",
+      layout: "single",
+    });
+    setSetId("");
+    setSnackbar({
+      open: true,
+      message: "Form cleared",
+      type: "info",
+    });
+  };
+
+  const addSampleData = () => {
+    setSetId("1");
+    setSingleQuestion({
+      question: "Which of the following best describes the main idea of the passage?",
+      options: [
+        "The economic implications of climate change policies",
+        "The historical development of environmental regulations",
+        "The conflict between economic growth and environmental protection",
+        "The role of technology in solving environmental problems",
+        "The psychological impact of environmental degradation"
+      ],
+      correctAnswer: "C",
+      explanation: "The passage primarily discusses the tension between economic development and environmental conservation, citing several examples where these interests conflict.",
+      difficulty: "easy",
+      topic: "Reading Comprehension",
+      type: "Main Idea",
+      level: "L2",
+      passage: "In recent decades, the tension between economic development and environmental protection has become increasingly apparent. While industries argue for fewer restrictions to promote growth, environmentalists point to the irreversible damage caused by unchecked industrialization...",
+      layout: "single",
+    });
+    setSnackbar({
+      open: true,
+      message: "Sample data loaded",
+      type: "success",
+    });
+  };
+
+  const Header = () => (
+    <header className="sticky top-0 z-50 bg-white shadow-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 text-gray-600 hover:text-purple-600 transition-colors rounded-lg hover:bg-purple-50"
+            title="Back to Verbal Vault"
+            aria-label="Back to Verbal Vault"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-2xl font-bold text-purple-800 flex items-center">
+            <BookOpen className="w-6 h-6 text-purple-600 mr-2" />
+            Verbal Reasoning Vault
+          </h1>
+        </div>
+      </div>
+    </header>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
-              title="Back to Verbal Reasoning"
-              aria-label="Back to Verbal Reasoning"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-              <BookOpen className="w-6 h-6 text-purple-600 mr-2" />
-              Verbal Reasoning Vault
-            </h1>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-600 to-purple-800 p-6">
-            <h2 className="text-2xl font-semibold text-white">Create Verbal Questions</h2>
-            <p className="text-indigo-100 text-sm mt-1">
-              Upload an Excel file or create questions from scratch to build your Verbal Question Vault.
-            </p>
-          </div>
-
-          <div className="p-6 sm:p-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div
-                onClick={() => setIsModalOpen(true)}
-                className="group p-6 rounded-xl border border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && setIsModalOpen(true)}
-                aria-label="Upload Excel file to import GMAT questions"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-indigo-100 group-hover:bg-indigo-200 transition-colors">
-                    <Upload className="w-5 h-5 text-indigo-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Upload Excel File</h3>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  Import questions from an Excel file (.xlsx or .xls).
-                </p>
-              </div>
-
-              <div
-                onClick={onCreate}
-                className="group p-6 rounded-xl border border-gray-200 bg-white hover:bg-green-50 hover:border-green-300 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && onCreate()}
-                aria-label="Create new GMAT questions from scratch"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
-                    <FilePlus className="w-5 h-5 text-green-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Create Questions</h3>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  Start creating new GMAT questions from scratch.
-                </p>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={exportToExcel}
-                className={`w-full sm:w-auto bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all duration-200 ${
-                  isExporting ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                aria-label="Download Excel template for GMAT questions"
-                disabled={isExporting}
-              >
-                <Download className="w-5 h-5" aria-hidden="true" />
-                <span>{isExporting ? "Generating Template..." : "Download Excel Template"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {isModalOpen && (
-          <div
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 transition-opacity duration-300"
-            ref={modalRef}
-          >
-            <div className="bg-white rounded-2xl p-8 max-w-lg w-full mx-4 relative shadow-2xl animate-in zoom-in-95 duration-300 border border-gray-100">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
-                aria-label="Close modal"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Upload Excel File</h2>
-
-              {uploadError && (
-                <div className="bg-red-50 p-4 rounded-lg flex items-center gap-3 text-red-700 text-sm mb-6">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              <div className="space-y-6">
-                <div
-                  className={`relative border-2 border-dashed ${
-                    isUploading ? "border-gray-300" : "border-indigo-300 hover:border-indigo-400"
-                  } rounded-xl p-8 text-center transition-colors bg-gray-50`}
-                >
-                  <label
-                    htmlFor="file-upload"
-                    className={`block ${isUploading ? "cursor-not-allowed" : "cursor-pointer"}`}
-                    role="button"
-                    aria-label="Upload Excel file"
-                  >
-                    <Upload className="w-12 h-12 mx-auto text-indigo-500 mb-4" aria-hidden="true" />
-                    <p className="text-base text-gray-700 mb-4 font-medium">
-                      {selectedFile ? (
-                        <span className="font-semibold text-indigo-600">{selectedFile.name}</span>
-                      ) : (
-                        "Drag and drop an Excel file (.xlsx, .xls) or click to select"
-                      )}
-                    </p>
-                    <button
-                      className={`bg-indigo-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-indigo-700 transition-all duration-200 flex items-center justify-center mx-auto shadow-sm ${
-                        isUploading ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
-                      disabled={isUploading}
-                      aria-disabled={isUploading}
-                    >
-                      {isUploading ? (
-                        <span className="flex items-center gap-2">
-                          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                          Processing...
-                        </span>
-                      ) : (
-                        "Select File"
-                      )}
-                    </button>
-                    <input
-                      id="file-upload"
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleFileUpload}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      ref={fileInputRef}
-                      disabled={isUploading}
-                      aria-describedby="file-upload-description"
-                    />
-                  </label>
-                  <p id="file-upload-description" className="sr-only">
-                    Upload an Excel file containing GMAT questions
-                  </p>
-                </div>
-                <p className="text-sm text-gray-500 text-center">
-                  Supported formats: .xlsx, .xls. Use the template for best results.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50">
+      <Header />
       <Snackbar
         open={snackbar.open}
         message={snackbar.message}
         type={snackbar.type}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       />
+      {loading && <Loading />}
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+          {/* Left Side: Upload Section */}
+          <div className="flex-1 bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:mr-[22rem]">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+                  Verbal Questions
+                </h1>
+                <p className="text-gray-600 text-sm md:text-base">
+                  Create and manage verbal reasoning questions
+                </p>
+              </div>
+
+              {activeTab === "single" && (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={addSampleData}
+                    className="bg-purple-100 text-purple-700 px-4 py-2 rounded-xl hover:bg-purple-200 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
+                  >
+                    <Play className="w-4 h-4" />
+                    Sample
+                  </button>
+                  <button
+                    onClick={saveQuestion}
+                    className="bg-green-600 text-white px-5 py-2 rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm shadow-md hover:shadow-lg"
+                    disabled={loading}
+                  >
+                    <Save className="w-4 h-4" />
+                    Save
+                  </button>
+                  <button
+                    onClick={clearForm}
+                    className="bg-gray-200 text-gray-700 px-5 py-2 rounded-xl hover:bg-gray-300 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
+                    disabled={loading}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex border-b border-gray-200 mb-6">
+              <button
+                onClick={() => setActiveTab("single")}
+                className={`px-4 py-2 font-medium text-sm md:text-base relative flex items-center gap-2 ${
+                  activeTab === "single"
+                    ? "text-purple-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Single Question
+                {activeTab === "single" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600"></div>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("bulk")}
+                className={`px-4 py-2 font-medium text-sm md:text-base relative flex items-center gap-2 ${
+                  activeTab === "bulk"
+                    ? "text-purple-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Upload className="w-4 h-4" />
+                Bulk Upload
+                {activeTab === "bulk" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600"></div>
+                )}
+              </button>
+            </div>
+
+            {activeTab === "single" && (
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <Hash className="w-4 h-4" />
+                      Set ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={setId}
+                      onChange={(e) =>
+                        setSetId(e.target.value.replace(/\D/g, ""))
+                      }
+                      placeholder="Enter numeric Set ID"
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      Topic <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={singleQuestion.topic}
+                      onChange={(e) =>
+                        handleSingleQuestionChange("topic", e.target.value)
+                      }
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
+                      required
+                    >
+                      <option value="">Select topic</option>
+                      {topicsList.map((topic, index) => (
+                        <option key={index} value={topic}>
+                          {topic}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <Type className="w-4 h-4" />
+                      Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={singleQuestion.type}
+                      onChange={(e) =>
+                        handleSingleQuestionChange("type", e.target.value)
+                      }
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
+                      required
+                    >
+                      <option value="">Select type</option>
+                      {questionTypes.map((type, index) => (
+                        <option key={index} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <Star className="w-4 h-4" />
+                      Difficulty <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={singleQuestion.difficulty}
+                      onChange={(e) =>
+                        handleSingleQuestionChange("difficulty", e.target.value)
+                      }
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
+                      required
+                    >
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+                </div>
+ <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Level <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {levels.map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() =>
+                          handleSingleQuestionChange("level", level)
+                        }
+                        className={`py-2 rounded-lg text-sm font-medium transition-all ${
+                          singleQuestion.level === level
+                            ? "bg-blue-600 text-white shadow-md"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Layout (column)
+                    </label>
+                    <select
+                      value={singleQuestion.layout}
+                      onChange={(e) =>
+                        handleSingleQuestionChange("layout", e.target.value)
+                      }
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
+                    >
+                      <option value="single">Single</option>
+                      <option value="double">Double</option>
+                    </select>
+                  </div>
+                </div>
+
+                {singleQuestion.layout === "double" && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Passage
+                    </label>
+                    <textarea
+                      value={singleQuestion.passage}
+                      onChange={(e) =>
+                        handleSingleQuestionChange("passage", e.target.value)
+                      }
+                      placeholder="Enter the reading passage here"
+                      className="w-full h-40 p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+                    />
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <HelpCircle className="w-4 h-4" />
+                    Question <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={singleQuestion.question}
+                    onChange={(e) =>
+                      handleSingleQuestionChange("question", e.target.value)
+                    }
+                    placeholder="Enter your question here"
+                    className="w-full h-32 p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+                    required
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Answer Options <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 gap-3">
+                    {singleQuestion.options.map((option, index) => (
+                      <div key={index} className="relative">
+                        <div className="flex items-center gap-3">
+                          <span className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-bold">
+                            {String.fromCharCode(65 + index)}
+                          </span>
+                          <input
+                            type="text"
+                            value={option}
+                            onChange={(e) =>
+                              handleOptionChange(index, e.target.value)
+                            }
+                            placeholder={`Enter option ${String.fromCharCode(
+                              65 + index
+                            )}${
+                              index === 4 ? " (optional)" : ""
+                            }`}
+                            className="flex-1 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                            required={index < 4}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Correct Answer <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {["A", "B", "C", "D", "E"].map((answer) => (
+                      <button
+                        key={answer}
+                        type="button"
+                        onClick={() =>
+                          handleSingleQuestionChange("correctAnswer", answer)
+                        }
+                        className={`py-2 rounded-lg text-sm font-medium transition-all ${
+                          singleQuestion.correctAnswer === answer
+                            ? "bg-green-600 text-white shadow-md"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        Option {answer}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Solution Explanation
+                  </label>
+                  <textarea
+                    value={singleQuestion.explanation}
+                    onChange={(e) =>
+                      handleSingleQuestionChange("explanation", e.target.value)
+                    }
+                    placeholder="Explain the solution step by step"
+                    className="w-full h-24 p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 resize-none text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === "bulk" && (
+              <VerbalBulkUpload
+                API_URL={API_URL}
+                setSnackbar={setSnackbar}
+                loading={loading}
+                setLoading={setLoading}
+              />
+            )}
+          </div>
+
+          {/* Right Side: Instructions */}
+          <div className="fixed z-10 bg-white rounded-2xl shadow-xl p-4 md:p-5 h-full-screen top-16 sm:top-20 md:top-24 right-2 sm:right-4 md:right-8 w-[95%] sm:w-80">
+            <div className="h-full flex flex-col">
+              <h3 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
+                <HelpCircle className="w-5 h-5" />
+                Instructions
+              </h3>
+
+              <div className="space-y-4 overflow-y-auto pr-2">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="font-semibold text-blue-800 text-sm mb-2">Set ID</h4>
+                  <p className="text-xs text-blue-700">
+                    Enter a numeric Set ID to group related questions together.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <h4 className="font-semibold text-purple-800 text-sm mb-2">Question Types</h4>
+                  <p className="text-xs text-purple-700">
+                    Select the appropriate question type based on the verbal reasoning skill being tested.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <h4 className="font-semibold text-green-800 text-sm mb-2">Layout Options</h4>
+                  <p className="text-xs text-green-700">
+                    Choose "Single" for single column layout or "Double" for double column layout.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                  <h4 className="font-semibold text-amber-800 text-sm mb-2">Answer Options</h4>
+                  <p className="text-xs text-amber-700">
+                    Provide at least 4 options. Option E is optional. Select the correct answer by clicking on the corresponding button.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -2,10 +2,6 @@ const express = require('express');
 const router = express.Router();
 const QuantVaultQuestion = require('../models/quantVaultQuestion');
 
-// Generate questionId in Q-001 format
-async function generateQuestionId(count) {
-  return `Q-${String(count + 1).padStart(3, '0')}`;
-}
 
 // Add quant vault question(s)
 router.post('/QuantVaultQuestions', async (req, res) => {
@@ -15,16 +11,58 @@ router.post('/QuantVaultQuestions', async (req, res) => {
       return res.status(400).json({ error: 'No questions provided for upload.' });
     }
 
-    const questionCount = await QuantVaultQuestion.countDocuments();
-    const questions = data.map((q, idx) => ({
-      ...q,
-      questionId: `Q-${String(questionCount + idx + 1).padStart(3, '0')}`,
-      metadata: {
-        source: Array.isArray(req.body) ? 'excel' : 'manual',
-        createdAt: new Date(),
-      },
-      explanation: q.explanation || "",
-    }));
+    // Validate and sanitize each question
+    let questionCount = await QuantVaultQuestion.countDocuments();
+    const requiredFields = [
+      "set_id",
+      "topic",
+      "type",
+      "question",
+      "options",
+      "difficulty",
+      "level"
+    ];
+    const questions = data.map((q, idx) => {
+      // Ensure required fields
+      for (const field of requiredFields) {
+        if (
+          (field === "options" && (!Array.isArray(q.options) || q.options.length < 2)) ||
+          (field !== "options" && (!q[field] || q[field].toString().trim() === ""))
+        ) {
+          throw new Error(`Question ${idx + 1} is missing required field: ${field}`);
+        }
+      }
+      // Only keep non-empty options (avoid undefined/empty string)
+      const options = (q.options || []).filter(opt => typeof opt === "string" && opt.trim() !== "");
+      if (options.length < 2) {
+        throw new Error(`Question ${idx + 1} must have at least 2 non-empty options.`);
+      }
+      // Ensure type
+      let type = q.type;
+      if (!type || typeof type !== "string" || !type.trim()) {
+        type = "Quantitative";
+      }
+      // Ensure answer is present and valid
+      let answer = q.answer;
+      if (!answer || !options.includes(answer)) {
+        answer = options[0];
+      }
+      // Explanation default
+      let explanation = q.explanation || "";
+
+      return {
+        ...q,
+        options,
+        type,
+        answer,
+        explanation,
+        questionId: `Q-${String(questionCount + idx + 1).padStart(3, '0')}`,
+        metadata: {
+          source: Array.isArray(req.body) ? 'excel' : 'manual',
+          createdAt: new Date(),
+        }
+      };
+    });
 
     const insertedQuestions = await QuantVaultQuestion.insertMany(questions);
     res.status(201).json(insertedQuestions);
@@ -73,7 +111,8 @@ router.delete('/QuantVaultQuestions/:questionId', async (req, res) => {
     }
     await QuantVaultQuestion.deleteOne({ questionId: req.params.questionId }).session(session);
 
-    const remaining = await QuantVaultQuestion.find().sort({ createdAt: 1 }).session(session);
+    // Sort by metadata.createdAt for renumbering
+    const remaining = await QuantVaultQuestion.find().sort({ 'metadata.createdAt': 1 }).session(session);
 
     for (let i = 0; i < remaining.length; i++) {
       const newId = `Q-${String(i + 1).padStart(3, '0')}`;

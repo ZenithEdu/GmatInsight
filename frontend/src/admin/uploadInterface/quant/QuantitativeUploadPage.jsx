@@ -5,7 +5,6 @@ import {
   FileText,
   Calculator,
   BookOpen,
-  Eye,
   Save,
   Trash2,
   X,
@@ -15,23 +14,21 @@ import {
   Copy,
   ArrowLeft,
   BarChart3,
-  Download,
   Play,
   Hash,
   Type,
   Star,
   TrendingUp,
   HelpCircle,
-  AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
-import * as XLSX from "xlsx";
-import Snackbar from "../../components/Snackbar";
-import Loading from "../../components/Loading";
-import LatexGuide from "../components/LatexGuide";
+import Snackbar from "../../../components/Snackbar";
+import Loading from "../../../components/Loading";
+import LatexGuide from "../../components/LatexGuide";
+import QuantBulkUpload from "./QuantBulkUpload"; // Import the new component
 
 const QuantitativeUploadPage = () => {
   const [activeTab, setActiveTab] = useState("single");
@@ -45,7 +42,6 @@ const QuantitativeUploadPage = () => {
     type: "",
     level: "",
   });
-  const [excelFile, setExcelFile] = useState(null);
   const [showEquationBuilder, setShowEquationBuilder] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [previewLatex, setPreviewLatex] = useState("");
@@ -60,10 +56,7 @@ const QuantitativeUploadPage = () => {
     message: "",
     type: "success",
   });
-  const [previewData, setPreviewData] = useState(null);
-  const [uploadStatus, setUploadStatus] = useState("");
-  const [validationErrors, setValidationErrors] = useState([]);
-  const fileInputRef = useRef(null);
+  const [showFieldSelectionHint, setShowFieldSelectionHint] = useState(true);
   const navigate = useNavigate();
 
   const API_URL = import.meta.env.VITE_API_URL;
@@ -308,35 +301,6 @@ const QuantitativeUploadPage = () => {
     setPreviewLatex("");
   };
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (
-        file.type ===
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-        file.type === "application/vnd.ms-excel"
-      ) {
-        setExcelFile(file);
-        setUploadStatus("File selected successfully!");
-        setPreviewData(null);
-        setValidationErrors([]);
-        setSnackbar({
-          open: true,
-          message: "File selected successfully!",
-          type: "success",
-        });
-      } else {
-        setUploadStatus("Please select a valid Excel file (.xlsx or .xls)");
-        setExcelFile(null);
-        setSnackbar({
-          open: true,
-          message: "Please select a valid Excel file (.xlsx or .xls)",
-          type: "error",
-        });
-      }
-    }
-  };
-
   // Single question save (POST to backend)
   const saveQuestion = async () => {
     if (!setId.trim()) {
@@ -422,223 +386,6 @@ const QuantitativeUploadPage = () => {
       clearForm();
       setSetId("");
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Preview Excel file
-  const previewExcelFile = async () => {
-    if (!excelFile) {
-      setSnackbar({
-        open: true,
-        message: "Please select a file first",
-        type: "error",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const data = await excelFile.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-      if (jsonData.length < 2) {
-        setSnackbar({
-          open: true,
-          message: "Excel file is empty or has no data rows",
-          type: "error",
-        });
-        return;
-      }
-
-      // Expected columns: set_id, question, optionA, optionB, optionC, optionD, optionE, answer, topic, type, difficulty, level, explanation
-      const headers = jsonData[0].map((h) =>
-        h ? h.toString().toLowerCase().trim() : ""
-      );
-      const requiredHeaders = [
-        "set_id",
-        "question",
-        "optiona",
-        "optionb",
-        "optionc",
-        "optiond",
-        "answer",
-        "topic",
-        "type",
-        "difficulty",
-        "level",
-      ];
-
-      const missingHeaders = requiredHeaders.filter(
-        (h) => !headers.includes(h)
-      );
-
-      if (missingHeaders.length > 0) {
-        setValidationErrors([
-          `Missing required columns: ${missingHeaders.join(", ")}`,
-        ]);
-        setLoading(false);
-        return;
-      }
-
-      const errors = [];
-      const processedQuestions = jsonData
-        .slice(1)
-        .map((row, idx) => {
-          const rowObj = headers.reduce((obj, header, i) => {
-            obj[header] =
-              row[i] !== undefined && row[i] !== null ? row[i].toString() : "";
-            return obj;
-          }, {});
-
-          // Validate required fields
-          if (!rowObj.set_id || !rowObj.set_id.toString().trim()) {
-            errors.push(`Row ${idx + 2}: Set ID is required`);
-          }
-
-          if (!rowObj.question || !rowObj.question.toString().trim()) {
-            errors.push(`Row ${idx + 2}: Question is required`);
-          }
-
-          if (!rowObj.optiona || !rowObj.optiona.toString().trim()) {
-            errors.push(`Row ${idx + 2}: Option A is required`);
-          }
-
-          if (!rowObj.optionb || !rowObj.optionb.toString().trim()) {
-            errors.push(`Row ${idx + 2}: Option B is required`);
-          }
-
-          if (
-            !rowObj.answer ||
-            !["A", "B", "C", "D", "E"].includes(
-              rowObj.answer.toString().toUpperCase().trim()
-            )
-          ) {
-            errors.push(`Row ${idx + 2}: Answer must be A, B, C, D, or E`);
-          }
-
-          if (!rowObj.topic || !rowObj.topic.toString().trim()) {
-            errors.push(`Row ${idx + 2}: Topic is required`);
-          }
-
-          if (!rowObj.type || !rowObj.type.toString().trim()) {
-            errors.push(`Row ${idx + 2}: Type is required`);
-          }
-
-          if (!rowObj.level || !rowObj.level.toString().trim()) {
-            errors.push(`Row ${idx + 2}: Level is required`);
-          }
-
-          const options = [
-            rowObj.optiona || "",
-            rowObj.optionb || "",
-            rowObj.optionc || "",
-            rowObj.optiond || "",
-            rowObj.optione || "", // Optional 5th option
-          ];
-
-          const answerIdx = ["A", "B", "C", "D", "E"].indexOf(
-            (rowObj.answer || "").toString().toUpperCase().trim()
-          );
-
-          return {
-            set_id: rowObj.set_id || "",
-            topic: rowObj.topic || "",
-            type: rowObj.type || "",
-            question: rowObj.question || "",
-            options,
-            answer: options[answerIdx] || "",
-            difficulty: rowObj.difficulty || "medium",
-            level: rowObj.level || "",
-            explanation: rowObj.explanation || "",
-          };
-        })
-        .filter(
-          (q) =>
-            q.question &&
-            q.options.filter((opt) => opt && opt.toString().trim()).length >= 2
-        );
-
-      if (processedQuestions.length === 0) {
-        errors.push("No valid questions found in file.");
-      }
-
-      setValidationErrors(errors);
-      setPreviewData(processedQuestions);
-
-      if (errors.length > 0) {
-        setSnackbar({
-          open: true,
-          message: "File has validation errors. Please check the preview.",
-          type: "warning",
-        });
-      } else {
-        setSnackbar({
-          open: true,
-          message: "File preview is ready. No validation errors found.",
-          type: "success",
-        });
-      }
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: "Error processing file: " + err.message,
-        type: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Bulk Excel upload
-  const processExcelFile = async () => {
-    if (!previewData || previewData.length === 0) {
-      setSnackbar({
-        open: true,
-        message: "Please preview the file first",
-        type: "error",
-      });
-      return;
-    }
-
-    if (validationErrors.length > 0) {
-      setSnackbar({
-        open: true,
-        message: "Please fix validation errors before uploading",
-        type: "error",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // POST to backend
-      const res = await fetch(`${API_URL}/quantVault/QuantVaultQuestions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(previewData),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Bulk upload failed");
-      }
-
-      setUploadStatus("File processed successfully! Questions uploaded.");
-      setSnackbar({
-        open: true,
-        message: "Bulk upload successful!",
-        type: "success",
-      });
-      setExcelFile(null);
-      setPreviewData(null);
-      setValidationErrors([]);
-    } catch (err) {
-      setUploadStatus("Error processing file.");
       setSnackbar({ open: true, message: err.message, type: "error" });
     } finally {
       setLoading(false);
@@ -734,76 +481,6 @@ const QuantitativeUploadPage = () => {
     }
   };
 
-  const downloadExcelTemplate = () => {
-    // Create a sample workbook
-    const wb = XLSX.utils.book_new();
-
-    // Sample data
-    const sampleData = [
-      [
-        "set_id",
-        "question",
-        "optionA",
-        "optionB",
-        "optionC",
-        "optionD",
-        "optionE",
-        "answer",
-        "topic",
-        "type",
-        "difficulty",
-        "level",
-        "explanation",
-      ],
-      [
-        "1",
-        "Solve: $$x^2 - 5x + 6 = 0$$",
-        "$$x = 2, 3$$",
-        "$$x = 1, 6$$",
-        "$$x = -2, -3$$",
-        "$$x = 0, 5$$",
-        "",
-        "A",
-        "Algebra",
-        "Problem Solving",
-        "medium",
-        "L2",
-        "Factor the quadratic equation: $$(x-2)(x-3)=0$$",
-      ],
-      [
-        "1",
-        "Area of circle with radius r?",
-        "$$\\pi r$$",
-        "$$\\pi r^2$$",
-        "$$2\\pi r$$",
-        "$$\\pi r^3$$",
-        "$$4\\pi r^2$$",
-        "B",
-        "Geometry",
-        "Problem Solving",
-        "easy",
-        "L1",
-        "The area of a circle is given by $$A = \\pi r^2$$",
-      ],
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(sampleData);
-    XLSX.utils.book_append_sheet(wb, ws, "Questions");
-
-    // Download the file
-    XLSX.writeFile(wb, "Quantitative_Questions_Template.xlsx");
-    setSnackbar({
-      open: true,
-      message: "Excel template downloaded",
-      type: "success",
-    });
-  };
-
-  const closePreview = () => {
-    setPreviewData(null);
-    setValidationErrors([]);
-  };
-
   const Header = () => (
     <header className="sticky top-0 z-50 bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -816,10 +493,10 @@ const QuantitativeUploadPage = () => {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-            <BarChart3 className="w-6 h-6 text-blue-600 mr-2" />
-            Quantitative Vault
-          </h1>
+            <h1 className="text-2xl font-bold text-blue-800 flex items-center">
+              <BarChart3 className="w-6 h-6 text-blue-600 mr-2" />
+              Quantitative Vault
+            </h1>
         </div>
         {!showGuide && (
           <button
@@ -844,7 +521,7 @@ const QuantitativeUploadPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Header />
       <Snackbar
         open={snackbar.open}
@@ -1037,10 +714,24 @@ const QuantitativeUploadPage = () => {
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4" />
-                    Question <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4" />
+                      Question <span className="text-red-500">*</span>
+                    </label>
+                    {!showFieldSelectionHint && (
+                      <button
+                        onClick={() => setShowFieldSelectionHint(true)}
+                        className="text-blue-600 text-xs flex items-center gap-1 hover:underline"
+                        title="How to use equations"
+                      >
+                        <HelpCircle className="w-3 h-3" />
+                        Need help with equations?
+                      </button>
+                    )}
+                    
+                  </div>
+
                   <div className="relative">
                     <textarea
                       value={singleQuestion.question}
@@ -1176,362 +867,120 @@ const QuantitativeUploadPage = () => {
             )}
 
             {activeTab === "bulk" && (
-              <div>
-                <div className="border-2 border-dashed border-blue-300 rounded-xl p-6 md:p-8 text-center hover:border-blue-400 transition-colors bg-blue-50/30">
-                  <Upload className="w-12 md:w-16 h-12 md:h-16 text-blue-400 mx-auto mb-4" />
-                  <h3 className="text-lg md:text-xl font-semibold text-gray-700 mb-2">
-                    Upload Excel File
-                  </h3>
-                  <p className="text-gray-500 mb-4 text-sm">
-                    Drag and drop or click to select (.xlsx, .xls)
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="excel-upload"
-                  />
-                  <label
-                    htmlFor="excel-upload"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer inline-block text-sm shadow-md hover:shadow-lg"
-                  >
-                    Choose File
-                  </label>
-                  {excelFile && (
-                    <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                      <p className="text-sm text-green-700 font-medium flex items-center justify-center gap-2">
-                        <Check className="w-4 h-4" />
-                        {excelFile.name}
-                      </p>
-                    </div>
-                  )}
-                  {uploadStatus && (
-                    <div
-                      className={`mt-4 p-3 rounded-lg text-sm ${
-                        uploadStatus.includes("success")
-                          ? "bg-green-50 text-green-700"
-                          : uploadStatus.includes("error") ||
-                            uploadStatus.includes("Please select")
-                          ? "bg-red-50 text-red-700"
-                          : "bg-blue-50 text-blue-700"
-                      }`}
-                    >
-                      {uploadStatus}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                  <button
-                    onClick={previewExcelFile}
-                    disabled={!excelFile || loading}
-                    className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed text-sm md:text-base shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="w-4 h-4" />
-                        Preview File
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={processExcelFile}
-                    disabled={
-                      !previewData ||
-                      previewData.length === 0 ||
-                      validationErrors.length > 0 ||
-                      loading
-                    }
-                    className="flex-1 bg-green-600 text-white py-2.5 rounded-xl hover:bg-green-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed text-sm md:text-base shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Upload Questions
-                  </button>
-                </div>
-
-                {validationErrors.length > 0 && (
-                  <div className="mt-6 p-4 bg-red-50 rounded-xl">
-                    <h3 className="text-lg font-semibold text-red-800 mb-3 flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5" />
-                      Validation Errors
-                    </h3>
-                    <div className="max-h-60 overflow-y-auto">
-                      <ul className="text-sm text-red-700 space-y-1">
-                        {validationErrors.map((error, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span>•</span>
-                            <span>{error}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-8 bg-gray-50 rounded-xl p-4 md:p-6">
-                  <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Excel Format Requirements
-                  </h3>
-                  <div className="space-y-2 md:space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        A
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        set_id <span className="text-red-500">*</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        B
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        question <span className="text-red-500">*</span> (use
-                        $$formula$$ for LaTeX)
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        C
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        optionA <span className="text-red-500">*</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        D
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        optionB <span className="text-red-500">*</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        E
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        optionC <span className="text-red-500">*</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        F
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        optionD <span className="text-red-500">*</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        G
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        optionE (optional)
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        H
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        answer <span className="text-red-500">*</span>{" "}
-                        (A/B/C/D/E)
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        I
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        topic <span className="text-red-500">*</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        J
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        type <span className="text-red-500">*</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        K
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        difficulty <span className="text-red-500">*</span>{" "}
-                        (Easy/Medium/Hard)
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        L
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        level <span className="text-red-500">*</span>{" "}
-                        (L1/L2/L3/L4/L5)
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        M
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        explanation (optional)
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-semibold text-blue-800 mb-3 text-sm md:text-base">
-                      LaTeX Examples in Excel:
-                    </h4>
-                    <div className="space-y-2">
-                      <div className="text-sm text-blue-700">
-                        <span className="font-medium">Question:</span> What is
-                        the solution to $$ax^2 + bx + c = 0$$?
-                      </div>
-                      <div className="text-sm text-blue-700">
-                        <span className="font-medium">Option A:</span>{" "}
-                        {`$$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$`}
-                      </div>
-                      <div className="text-sm text-blue-700">
-                        <span className="font-medium">Explanation:</span> Use
-                        the quadratic formula{" "}
-                        {`$$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$`}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
-                    <h4 className="font-semibold text-yellow-800 mb-2 text-sm md:text-base">
-                      Important Notes:
-                    </h4>
-                    <ul className="text-sm text-yellow-700 space-y-1">
-                      <li>• First row should contain column headers</li>
-                      <li>• Each question should be in a separate row</li>
-                      <li>
-                        • LaTeX equations must be wrapped in double dollar signs
-                      </li>
-                      <li>• Correct answer must be exactly A, B, C, D, or E</li>
-                      <li>• File size limit: 10MB</li>
-                      <li>
-                        • Fields marked with{" "}
-                        <span className="text-red-500">*</span> are required
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={downloadExcelTemplate}
-                    className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm md:text-base flex items-center justify-center gap-2 mx-auto shadow-md hover:shadow-lg"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download Excel Template
-                  </button>
-                </div>
-              </div>
+              <QuantBulkUpload
+                API_URL={API_URL}
+                setSnackbar={setSnackbar}
+                loading={loading}
+                setLoading={setLoading}
+                renderTextWithLatex={renderTextWithLatex}
+              />
             )}
           </div>
 
           {/* Right Side: Quick Equations */}
-          <div
-  className="
-    fixed z-10
-    bg-white rounded-2xl shadow-xl 
-    p-4 md:p-5
-    h-full-screen
-    top-16 sm:top-20 md:top-24
-    right-2 sm:right-4 md:right-8
-    w-[95%] sm:w-80
-  "
->
-  <div className="flex items-center justify-between mb-4">
-    <h3 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
-      <Calculator className="w-5 h-5" />
-      Quick Equations
-    </h3>
-    <button
-      onClick={() => setShowCustomLatexPopup(true)}
-      className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-      title="Custom LaTeX"
-    >
-      <Plus className="w-5 h-5" />
-    </button>
-  </div>
+<div className="fixed z-10 bg-white rounded-2xl shadow-xl p-4 md:p-5 h-full-screen top-16 sm:top-20 md:top-24 right-2 sm:right-4 md:right-8 w-[95%] sm:w-80">
+  {!activeField && showFieldSelectionHint ? (
+    <div className="h-full flex flex-col items-center justify-center text-center p-4">
+      <div className="bg-blue-50 p-4 rounded-lg mb-4">
+        <HelpCircle className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+        <h3 className="font-bold text-blue-800 mb-2">How to use equations</h3>
+        <p className="text-sm text-blue-700">
+          First select any field where you want to add an equation - question, option, or explanation. Then you can choose from these quick equations.
+        </p>
+      </div>
+      <button 
+        onClick={() => setShowFieldSelectionHint(false)}
+        className="text-grey-900 text-sm hover:underline cursor-pointer"
+      >
+        Got it, don't show again
+      </button>
+    </div>
+  ) : activeField ? (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+          <Calculator className="w-5 h-5" />
+          Quick Equations
+        </h3>
+        <button
+          onClick={() => setShowCustomLatexPopup(true)}
+          className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+          title="Custom LaTeX"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+      </div>
 
-  {activeField && (
-    <div className="mb-4 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200 text-sm font-medium text-blue-800">
-      Active:{" "}
-      {activeField === "question"
-        ? "Question"
-        : activeField.startsWith("option")
-        ? `Option ${activeField.replace("option", "")}`
-        : activeField === "explanation"
-        ? "Explanation"
-        : "Field"}
+      <div className="mb-4 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200 text-sm font-medium text-blue-800">
+        Active:{" "}
+        {activeField === "question"
+          ? "Question"
+          : activeField.startsWith("option")
+          ? `Option ${activeField.replace("option", "")}`
+          : activeField === "explanation"
+          ? "Explanation"
+          : "Field"}
+      </div>
+
+      <div className="space-y-2 h-[20rem] overflow-y-auto pr-2">
+        {allEquations
+          .slice(0, showMoreEquations ? allEquations.length : 8)
+          .map((eq, index) => (
+            <button
+              key={index}
+              onClick={() => addEquationToField(eq.latex)}
+              className="w-full p-2.5 text-left border border-gray-200 rounded-md hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-start gap-2.5"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-800 text-sm truncate">
+                  {eq.name}
+                </div>
+                <div className="text-xs font-mono text-gray-600 break-all">
+                  <InlineMath math={eq.latex} />
+                </div>
+              </div>
+            </button>
+          ))}
+      </div>
+
+      {allEquations.length > 8 && (
+        <button
+          onClick={() => setShowMoreEquations(!showMoreEquations)}
+          className="w-full flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium py-2 mt-2 border border-gray-200 rounded-md hover:bg-gray-50"
+        >
+          {showMoreEquations ? (
+            <>
+              <ChevronUp className="w-4 h-4" />
+              Show Less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-4 h-4" />
+              Show More ({allEquations.length - 8} more)
+            </>
+          )}
+        </button>
+      )}
+    </>
+  ) : (
+    <div className="h-full flex items-center justify-center">
+      <p className="text-gray-500 text-center p-4">
+        Select a field to enable equations
+        <br />
+        <button 
+          onClick={() => setShowFieldSelectionHint(true)}
+          className="text-blue-600 text-sm hover:underline cursor-pointer mt-2"
+        >
+          Show instructions again
+        </button>
+      </p>
     </div>
   )}
-
-  <div className="space-y-2 h-[20rem] overflow-y-auto pr-2">
-    {allEquations
-      .slice(0, showMoreEquations ? allEquations.length : 8)
-      .map((eq, index) => (
-        <button
-          key={index}
-          onClick={() => addEquationToField(eq.latex)}
-          className="w-full p-2.5 text-left border border-gray-200 rounded-md hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-start gap-2.5"
-        >
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-gray-800 text-sm truncate">
-              {eq.name}
-            </div>
-            <div className="text-xs font-mono text-gray-600 break-all">
-              <InlineMath math={eq.latex} />
-            </div>
-          </div>
-        </button>
-      ))}
-  </div>
-
-  {allEquations.length > 8 && (
-    <button
-      onClick={() => setShowMoreEquations(!showMoreEquations)}
-      className="w-full flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium py-2 mt-2 border border-gray-200 rounded-md hover:bg-gray-50"
-    >
-      {showMoreEquations ? (
-        <>
-          <ChevronUp className="w-4 h-4" />
-          Show Less
-        </>
-      ) : (
-        <>
-          <ChevronDown className="w-4 h-4" />
-          Show More ({allEquations.length - 8} more)
-        </>
-      )}
-    </button>
-  )}
 </div>
-
-
-
         </div>
 
         {showCustomLatexPopup && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-gray-800">
@@ -1596,129 +1045,9 @@ const QuantitativeUploadPage = () => {
             </div>
           </div>
         )}
-
-        {previewData && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center p-6 border-b">
-                <h3 className="text-xl font-bold text-gray-800">
-                  Preview Questions ({previewData.length} found)
-                </h3>
-                <button
-                  onClick={closePreview}
-                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="overflow-y-auto p-6">
-                {previewData.map((question, index) => (
-                  <div key={index} className="mb-6 p-4 border rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-gray-800">
-                        Question {index + 1}
-                      </h4>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        Set ID: {question.set_id}
-                      </span>
-                    </div>
-
-                    <div className="mb-3">
-                      <span className="text-sm font-medium text-gray-700">
-                        Question:{" "}
-                      </span>
-                      <div className="text-sm mt-1">
-                        {renderTextWithLatex(question.question)}
-                      </div>
-                    </div>
-
-                    <div className="mb-3">
-                      <span className="text-sm font-medium text-gray-700">
-                        Options:{" "}
-                      </span>
-                      <div className="grid grid-cols-1 gap-2 mt-1">
-                        {question.options.map(
-                          (option, optIndex) =>
-                            option && (
-                              <div key={optIndex} className="flex items-start">
-                                <span className="font-medium mr-2">
-                                  {String.fromCharCode(65 + optIndex)}:
-                                </span>
-                                <div className="text-sm">
-                                  {renderTextWithLatex(option)}
-                                </div>
-                              </div>
-                            )
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Answer:{" "}
-                        </span>
-                        <span>{question.answer}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Topic:{" "}
-                        </span>
-                        <span>{question.topic}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Type:{" "}
-                        </span>
-                        <span>{question.type}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Level:{" "}
-                        </span>
-                        <span>{question.level}</span>
-                      </div>
-                    </div>
-
-                    {question.explanation && (
-                      <div className="mt-3">
-                        <span className="text-sm font-medium text-gray-700">
-                          Explanation:{" "}
-                        </span>
-                        <div className="text-sm mt-1">
-                          {renderTextWithLatex(question.explanation)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
-                <button
-                  onClick={closePreview}
-                  className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={processExcelFile}
-                  disabled={validationErrors.length > 0}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  Upload Questions
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
     </div>
-
   );
-
 };
 
 export default QuantitativeUploadPage;

@@ -12,11 +12,13 @@ import {
   X,
   Plus,
   ChevronRight,
+
 } from "lucide-react";
 import { RefreshCw } from 'lucide-react';
 
 import Loading from "../../components/Loading";
 import Snackbar from "../../components/Snackbar";
+import Dialog from "../../components/Dialog";
 
 const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
 const levelOptions = ["All", "l1", "l2", "l3", "l4", "l5"];
@@ -120,47 +122,45 @@ export default function VerbalPage() {
     setFormErrors({});
     setHasUnsavedChanges(false);
   }, [isEditing, hasUnsavedChanges]);
+  const handleDelete = useCallback((id) => {
+    setConfirmDialog({ open: true, type: "delete", questionId: id });
+  }, []);
 
-  const handleDelete = useCallback(
-    async (id) => {
-      if (window.confirm(`Are you sure you want to delete Question ${id}?`)) {
-        setDeleteLoading(true);
-        setSnackbar({ open: false, message: "", type: "success" });
-        try {
-          const res = await fetch(
-            `${API_URL}/verbalVault/VerbalVaultQuestions/${id}`,
-            {
-              method: "DELETE",
-            }
-          );
-          if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.error || "Failed to delete question");
-          }
-          // Re-fetch questions after delete
-          const refreshed = await fetch(
-            `${API_URL}/verbalVault/VerbalVaultQuestions`
-          );
-          if (!refreshed.ok) throw new Error("Failed to reload questions");
-          const data = await refreshed.json();
-          setQuestions(data);
-          setSnackbar({
-            open: true,
-            message: "Question deleted successfully!",
-            type: "success",
-          });
-          if (selectedQuestion && selectedQuestion.questionId === id) {
-            closePreview();
-          }
-        } catch (err) {
-          setSnackbar({ open: true, message: err.message, type: "error" });
-        } finally {
-          setDeleteLoading(false);
-        }
+  const confirmDelete = useCallback(async () => {
+    const id = confirmDialog.questionId;
+    setDeleteLoading(true);
+    setConfirmDialog({ open: false, type: "", questionId: null });
+    setSnackbar({ open: false, message: "", type: "success" });
+    try {
+      const res = await fetch(
+        `${API_URL}/verbalVault/VerbalVaultQuestions/${id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to delete question");
       }
-    },
-    [selectedQuestion, API_URL, closePreview]
-  );
+      // Re-fetch questions after delete
+      const refreshed = await fetch(
+        `${API_URL}/verbalVault/VerbalVaultQuestions`
+      );
+      if (!refreshed.ok) throw new Error("Failed to reload questions");
+      const data = await refreshed.json();
+      setQuestions(data);
+      setSnackbar({
+        open: true,
+        message: "Question deleted successfully!",
+        type: "success",
+      });
+      if (selectedQuestion && selectedQuestion.questionId === id) {
+        closePreview();
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, type: "error" });
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [confirmDialog.questionId, selectedQuestion, API_URL, closePreview]);
 
   const handleEditChange = useCallback((key, value) => {
     setEditedQuestion((prev) => ({ ...prev, [key]: value }));
@@ -339,12 +339,9 @@ export default function VerbalPage() {
     });
   }, []);
 
-  const handleRegenerate = useCallback(
-    (id) => {
-      setConfirmDialog({ open: true, questionId: id });
-    },
-    []
-  );
+  const handleRegenerate = useCallback((id) => {
+    setConfirmDialog({ open: true, type: "regenerate", questionId: id });
+  }, []);
 
   const confirmRegenerate = useCallback(async () => {
     if (!confirmDialog.questionId) return;
@@ -376,39 +373,33 @@ export default function VerbalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Confirm Regenerate Dialog */}
-      {confirmDialog.open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full text-center">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">
-              Regenerate Question
-            </h3>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to regenerate this question? It will be duplicated and added to the end of the list.
-            </p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => setConfirmDialog({ open: false, questionId: null })}
-                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmRegenerate}
-                className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
-              >
-                Yes, Regenerate
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+            {/* Dialogs */}
+            <Dialog
+              open={confirmDialog.open && confirmDialog.type === "delete"}
+              title="Delete Question"
+              message="Are you sure you want to delete this question? This action cannot be undone."
+              onConfirm={confirmDelete}
+              onCancel={() =>
+                setConfirmDialog({ open: false, type: "", questionId: null })
+              }
+              confirmText="Delete"
+              loading={deleteLoading}
+            />
+<Dialog
+        open={confirmDialog.open && confirmDialog.type === "regenerate"}
+        title="Regenerate Question"
+        message="Are you sure you want to regenerate this question? It will be duplicated and added to the end of the list."
+        onConfirm={confirmRegenerate}
+        onCancel={() =>
+          setConfirmDialog({ open: false, type: "", questionId: null })
+        }
+        confirmText="Regenerate"
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+            <h1 className="text-2xl font-bold text-purple-800 flex items-center">
               <BookOpen className="w-6 h-6 text-purple-600 mr-2" />
               Verbal Reasoning Vault
             </h1>
@@ -426,7 +417,7 @@ export default function VerbalPage() {
               Filters
             </button>
             <button
-              onClick={() => navigate("/verbal-upload-page")}
+              onClick={() => navigate("/verbal/verbal-upload-page")}
               className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -464,16 +455,16 @@ export default function VerbalPage() {
             )}
             {/* Filter Panel */}
             {showFilters && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+              <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-4 mb-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-purple-700 mb-1">
                       Question ID
                     </label>
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-purple-400" />
                       <input
-                        className="w-full pl-10 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full pl-10 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                         placeholder="Search ID"
                         value={filters.id}
                         onChange={(e) => updateFilter("id", e.target.value)}
@@ -482,11 +473,11 @@ export default function VerbalPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-purple-700 mb-1">
                       Question Type
                     </label>
                     <select
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                       value={filters.type}
                       onChange={(e) => updateFilter("type", e.target.value)}
                       aria-label="Filter by Question Type"
@@ -502,11 +493,11 @@ export default function VerbalPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-purple-700 mb-1">
                       Topic
                     </label>
                     <input
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                       placeholder="Search topic"
                       value={filters.topic}
                       onChange={(e) => updateFilter("topic", e.target.value)}
@@ -514,11 +505,11 @@ export default function VerbalPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-purple-700 mb-1">
                       Difficulty
                     </label>
                     <select
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                       value={filters.difficulty}
                       onChange={(e) =>
                         updateFilter("difficulty", e.target.value)
@@ -538,7 +529,7 @@ export default function VerbalPage() {
                   <div className="flex items-end">
                     <button
                       onClick={resetFilters}
-                      className="w-full px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                      className="w-full px-3 py-2 bg-purple-200 text-purple-700 rounded-lg hover:bg-purple-300 transition-colors"
                       aria-label="Reset Filters"
                     >
                       Reset Filters
@@ -547,11 +538,11 @@ export default function VerbalPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-purple-700 mb-1">
                       Level
                     </label>
                     <select
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                       value={filters.level}
                       onChange={(e) => updateFilter("level", e.target.value)}
                       aria-label="Filter by Level"
@@ -567,12 +558,12 @@ export default function VerbalPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-purple-700 mb-1">
                       Created Date
                     </label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
                       value={filters.createdAt}
                       onChange={(e) =>
                         updateFilter("createdAt", e.target.value)
@@ -586,7 +577,7 @@ export default function VerbalPage() {
 
             {/* Questions Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="hidden md:grid grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] bg-gray-50 px-4 py-3 border-b border-gray-200 text-sm font-semibold text-gray-600">
+              <div className="hidden md:grid grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] bg-purple-50 px-4 py-3 border-b border-purple-200 text-sm font-semibold text-purple-600">
                 <div
                   className="cursor-pointer"
                   onClick={() => handleSort("set_id")}
@@ -636,7 +627,7 @@ export default function VerbalPage() {
                 sortedQuestions.map((q) => (
                   <div
                     key={q.questionId}
-                    className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors text-sm"
+                    className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] px-4 py-3 border-b border-purple-200 hover:bg-purple-50 transition-colors text-sm"
                   >
                     <div>{q.set_id || "N/A"}</div>
                     <div>{q.questionId}</div>

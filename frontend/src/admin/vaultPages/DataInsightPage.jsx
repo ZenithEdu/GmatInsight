@@ -322,7 +322,7 @@ export default function DataInsightsPage() {
       <header className="sticky top-0 z-50 bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+            <h1 className="text-2xl font-bold text-emerald-800 flex items-center">
               <PieChart className="w-6 h-6 text-emerald-600 mr-2" />
               Data Insights Vault
             </h1>
@@ -339,7 +339,7 @@ export default function DataInsightsPage() {
               Filters
             </button>
             <button
-              onClick={() => navigate("/data-insight-upload-page")}
+              onClick={() => navigate("/data-insight/data-insight-upload-page")}
               className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -353,14 +353,14 @@ export default function DataInsightsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Filter Panel */}
         {showFilters && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-emerald-200 p-4 mb-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-emerald-700 mb-1">
                   Question ID
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-emerald-400" />
                   <input
                     className="w-full pl-10 pr-3 py-2 border rounded-lg text-sm"
                     placeholder="Search ID"
@@ -370,7 +370,7 @@ export default function DataInsightsPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-emerald-700 mb-1">
                   Question Type
                 </label>
                 <select
@@ -386,7 +386,7 @@ export default function DataInsightsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-emerald-700 mb-1">
                   Topic
                 </label>
                 <input
@@ -397,7 +397,7 @@ export default function DataInsightsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-emerald-700 mb-1">
                   Difficulty
                 </label>
                 <select
@@ -415,7 +415,7 @@ export default function DataInsightsPage() {
               <div className="flex items-end">
                 <button
                   onClick={resetFilters}
-                  className="w-full px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="w-full px-3 py-2 bg-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-300 transition-colors"
                 >
                   Reset Filters
                 </button>
@@ -423,7 +423,7 @@ export default function DataInsightsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-emerald-700 mb-1">
                   Level
                 </label>
                 <select
@@ -441,7 +441,7 @@ export default function DataInsightsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-emerald-700 mb-1">
                   Created Date
                 </label>
                 <input
@@ -458,7 +458,7 @@ export default function DataInsightsPage() {
         {/* Questions Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Table Header */}
-          <div className="hidden md:grid grid-cols-[1fr_1.8fr_1.5fr_1.2fr_0.8fr_0.6fr_1.2fr_0.8fr] bg-gray-50 px-4 py-3 border-b border-gray-200 text-sm font-semibold text-gray-600">
+          <div className="hidden md:grid grid-cols-[1fr_1.8fr_1.5fr_1.2fr_0.8fr_0.6fr_1.2fr_0.8fr] bg-emerald-50 px-4 py-3 border-b border-emerald-200 text-sm font-semibold text-emerald-600">
             <div
               className="cursor-pointer flex items-center pl-2"
               onClick={() => handleSort("id")}
@@ -504,7 +504,7 @@ export default function DataInsightsPage() {
             sortedQuestions.map((q) => (
               <div
                 key={q.id}
-                className="grid grid-cols-1 md:grid-cols-[1fr_1.8fr_1.5fr_1.2fr_0.8fr_0.6fr_1.2fr_0.8fr] px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors text-sm"
+                className="grid grid-cols-1 md:grid-cols-[1fr_1.8fr_1.5fr_1.2fr_0.8fr_0.6fr_1.2fr_0.8fr] px-4 py-3 border-b border-emerald-200 hover:bg-emerald-50 transition-colors text-sm"
               >
                 <div className="flex items-center py-2 md:py-0">
                   <FileText className="w-4 h-4 text-emerald-600 mr-2" />

@@ -16,7 +16,8 @@ export default function QuestionVault() {
       icon: BarChart3,
       route: "/quant",
       description: "Manage statistical models and quantitative assessments",
-      color: "bg-blue-100 text-blue-600",
+      bgColor: "bg-blue-100",
+      textColor: "text-blue-600",
       gradient: "from-blue-500 to-blue-600",
       glow: "shadow-[0_0_20px_rgba(59,130,246,0.4)]",
       iconBg: "bg-blue-500/10",
@@ -26,7 +27,8 @@ export default function QuestionVault() {
       icon: BookOpen,
       route: "/verbal",
       description: "Manage reading comprehension and verbal content",
-      color: "bg-purple-100 text-purple-600",
+      bgColor: "bg-purple-100",
+      textColor: "text-purple-600",
       gradient: "from-purple-500 to-purple-600",
       glow: "shadow-[0_0_20px_rgba(168,85,247,0.4)]",
       iconBg: "bg-purple-500/10",
@@ -36,7 +38,8 @@ export default function QuestionVault() {
       icon: Database,
       route: "/data-insight",
       description: "Analyze performance metrics and generate reports",
-      color: "bg-emerald-100 text-emerald-600",
+      bgColor: "bg-emerald-100",
+      textColor: "text-emerald-600",
       gradient: "from-emerald-500 to-emerald-600",
       glow: "shadow-[0_0_20px_rgba(16,185,129,0.4)]",
       iconBg: "bg-emerald-500/10",
@@ -50,7 +53,9 @@ export default function QuestionVault() {
         <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="max-w-7xl mx-auto">
             <div className="mb-8 text-center">
-              <h1 className="text-3xl font-bold text-blue-700 mb-2">Question Vault</h1>
+              <h1 className="text-3xl font-bold text-blue-800 mb-2">
+                Question Vault
+              </h1>
               <p className="text-blue-900 max-w-2xl mx-auto">
                 Select a section to manage your question bank and assessment content
               </p>
@@ -59,7 +64,6 @@ export default function QuestionVault() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {options.map((opt) => {
                 const Icon = opt.icon;
-                const textColor = opt.color.split(" ").find((c) => c.startsWith("text-"));
                 return (
                   <div
                     key={opt.title}
@@ -73,18 +77,20 @@ export default function QuestionVault() {
                     />
 
                     {/* Background pattern */}
-                    <div className={`absolute -right-10 -top-10 w-32 h-32 rounded-full ${opt.iconBg} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                    <div
+                      className={`absolute -right-10 -top-10 w-32 h-32 rounded-full ${opt.iconBg} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+                    ></div>
 
                     {/* Icon */}
                     <div
-                      className={`relative z-10 w-14 h-14 rounded-lg ${opt.color} flex items-center justify-center mb-6 transition-all duration-300 group-hover:rotate-6`}
+                      className={`relative z-10 w-14 h-14 rounded-lg ${opt.bgColor} ${opt.textColor} flex items-center justify-center mb-6 transition-all duration-300 group-hover:rotate-6`}
                     >
                       <Icon className="w-6 h-6" />
                     </div>
 
                     {/* Content */}
                     <div className="relative z-10">
-                      <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">
+                      <h2 className={`text-xl font-bold ${opt.textColor} mb-2`}>
                         {opt.title}
                       </h2>
                       <p className="text-gray-600 text-sm leading-relaxed group-hover:text-gray-700 transition-colors mb-4">
@@ -94,7 +100,7 @@ export default function QuestionVault() {
 
                     {/* Footer link */}
                     <div
-                      className={`relative z-10 mt-4 inline-flex items-center text-sm font-medium ${textColor} group-hover:opacity-90 transition-all`}
+                      className={`relative z-10 mt-4 inline-flex items-center text-sm font-medium ${opt.textColor} group-hover:opacity-90 transition-all`}
                     >
                       <span>Manage Section</span>
                       <ChevronRight className="w-4 h-4 ml-1 relative top-[1.5px] group-hover:translate-x-1 transition-transform" />

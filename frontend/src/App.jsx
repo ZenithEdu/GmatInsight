@@ -1,6 +1,6 @@
 // Importing required modules and components
 import { BrowserRouter, Routes, Route } from "react-router-dom"; // React Router components for navigation
-import 'katex/dist/katex.min.css';
+import "katex/dist/katex.min.css";
 // Public pages
 import Home from "./pages/home.jsx";
 import LoginPage from "./components/login.jsx";
@@ -23,7 +23,7 @@ import QuantPage from "./admin/vaultPages/QuantPage.jsx";
 import VerbalPage from "./admin/vaultPages/VerbalPage.jsx";
 import DataInsightPage from "./admin/vaultPages/DataInsightPage.jsx";
 import DataInsightsUploadPage from "./admin/uploadInterface/DataInsightsUploadPage.jsx";
-import QuantitativeUploadPage from "./admin/uploadInterface/QuantitativeUploadPage.jsx";
+import QuantitativeUploadPage from "./admin/uploadInterface/quant/QuantitativeUploadPage.jsx";
 
 // Admin: Data Insight Question Structures
 import MultiSourceStructure from "./admin/dataInsightStructures/MultiSourceStructure.jsx";
@@ -38,66 +38,87 @@ import QuestionVault from "./admin/vault/QuestionVault.jsx";
 import VerbalReasoningStructure from "./admin/verbalStructure/VerbalReasoningStructure.jsx";
 import AssessmentManager from "./admin/assessments/AssessmentManager.jsx";
 
-
 function App() {
   return (
     <>
       {/* Setting up the Router */}
       <BrowserRouter>
         <Routes>
-
-            {/* Public routes */}
+          {/* Public routes */}
           <Route path="/" element={<Home />} /> {/* Homepage */}
-          <Route path="/login" element={<LoginPage />} /> {/* User login page */}
-          <Route path="/gmat" element={<GmatCoursesSection />} /> {/* GMAT courses list */}
-          <Route path="/gre" element={<GreCoursesSection />} /> {/* GRE courses list */}
+          <Route path="/login" element={<LoginPage />} />{" "}
+          {/* User login page */}
+          <Route path="/gmat" element={<GmatCoursesSection />} />{" "}
+          {/* GMAT courses list */}
+          <Route path="/gre" element={<GreCoursesSection />} />{" "}
+          {/* GRE courses list */}
           <Route path="/about" element={<AboutPage />} /> {/* About us page */}
           <Route path="/contact" element={<ContactUs />} /> {/* Contact page */}
-          <Route path="/testimonials" element={<TestimonialsPage />} /> {/* All testimonials */}
-          <Route path="/user1" element={<TestimonialPage />} /> {/* Single testimonial view */}
-          <Route path="/gmatcourse1" element={<GMATCoursePage />} /> {/* Specific GMAT course details */}
-          <Route path="/knowgmat" element={<GMATFocusFormat />} /> {/* GMAT exam format details */}
-
+          <Route path="/testimonials" element={<TestimonialsPage />} />{" "}
+          {/* All testimonials */}
+          <Route path="/user1" element={<TestimonialPage />} />{" "}
+          {/* Single testimonial view */}
+          <Route path="/gmatcourse1" element={<GMATCoursePage />} />{" "}
+          {/* Specific GMAT course details */}
+          <Route path="/knowgmat" element={<GMATFocusFormat />} />{" "}
+          {/* GMAT exam format details */}
           {/* FLT (Full Length Test) routes */}
           <Route path="/flt" element={<FLTHome />} /> {/* FLT homepage */}
-          <Route path="/test-window" element={<TestWindow />} /> {/* Test-taking window */}
-
+          <Route path="/test-window" element={<TestWindow />} />{" "}
+          {/* Test-taking window */}
           {/* Admin dashboard routes */}
           <Route path="/admin" element={<Admin />} /> {/* Admin dashboard */}
           {/* Admin: Vault pages */}
-          <Route path="/question-vault" element={<QuestionVault />} /> {/* Question bank */}
-          <Route path="/assessment-Manager" element={<AssessmentManager />} /> {/* Assessment storage */}
-          {/* Admin: Question management */}
-          <Route path="/quant" element={<QuantPage />} /> {/* Manage Quant questions */}
-          <Route path="/verbal" element={<VerbalPage />} /> {/* Manage Verbal questions */}
-          <Route path="/data-insight" element={<DataInsightPage />} /> {/* Manage Data Insight section */}
-
+          <Route path="/question-vault" element={<QuestionVault />} />{" "}
+          {/* Question bank */}
+          {/* Assessment storage */}
+          <Route
+            path="/assessment-Manager"
+            element={<AssessmentManager />}
+          />{" "}
+          {/* Manage Quant questions */}
+          <Route path="/quant" element={<QuantPage />} />{" "}
+          {/* Manage Verbal questions */}
+          <Route path="/verbal" element={<VerbalPage />} />{" "}
+          {/* Manage Data Insight section */}
+          <Route path="/data-insight" element={<DataInsightPage />} />{" "}
           {/* Verbal: Upload pages */}
-          <Route path="/verbal-upload-page" element={<VerbalReasoningStructure />} />
+          <Route
+            path="/verbal/verbal-upload-page"
+            element={<VerbalReasoningStructure />}
+          />
           {/* Data Insight: Upload pages */}
           <Route
-            path="/data-insight-upload-page"
+            path="/data-insight/data-insight-upload-page"
             element={<DataInsightsUploadPage />}
           />
-          <Route path="/quant/quantitative-upload-page" element={<QuantitativeUploadPage />} />
-
+          <Route
+            path="/quant/quantitative-upload-page"
+            element={<QuantitativeUploadPage />}
+          />
           {/* Data Insight: Structures */}
-          <Route path="/multi-source" element={<MultiSourceStructure />} /> {/* Multi-source reasoning format */}
-          <Route path="/table-analysis" element={<TableAnalysisStructure />} /> {/* Table analysis format */}
+          <Route path="/multi-source" element={<MultiSourceStructure />} />{" "}
+          {/* Multi-source reasoning format */}
+          <Route
+            path="/table-analysis"
+            element={<TableAnalysisStructure />}
+          />{" "}
+          {/* Table analysis format */}
           <Route
             path="/graphics-interpretation"
             element={<GraphicsInterpretationStructure />}
-          /> {/* Graphics interpretation format */}
+          />{" "}
+          {/* Graphics interpretation format */}
           <Route
             path="/two-part-analysis"
             element={<TwoPartAnalysisStructure />}
-          /> {/* Two-part analysis format */}
+          />{" "}
+          {/* Two-part analysis format */}
           <Route
             path="/data-sufficiency"
             element={<DataSufficiencyStructure />}
-          /> {/* Data sufficiency format */}
-
-
+          />{" "}
+          {/* Data sufficiency format */}
           {/* Catch-all route for undefined pages */}
           <Route path="*" element={<NotFound />} />
         </Routes>

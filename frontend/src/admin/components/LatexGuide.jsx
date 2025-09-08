@@ -337,21 +337,18 @@ const LatexGuide = ({ setShowGuide }) => {
       {/* Sidebar */}
       <aside
         ref={sidebarRef}
-        className={`bg-blue-50/100 backdrop-blur border-r border-blue-200 transition-all duration-300 ${
+        className={`bg-gray-50 backdrop-blur border-r border-blue-200 transition-all duration-300 ${
           sidebarCollapsed ? "w-14" : "w-72"
         } flex-shrink-0 shadow-sm`}
       >
-        <div className="p-3 border-b border-blue-200 sticky top-0 bg-blue-400/10 backdrop-blur z-10">
+        <div className="p-3 border-b border-blue-400 sticky top-0 bg-blue-50 z-10">
           <div className="flex items-center justify-between">
             {!sidebarCollapsed && (
-              <div className="flex items-center gap-2 min-w-0 bg">
+              <div className="flex items-center gap-2 min-w-0">
                 <div className="truncate">
-                  <h1 className="font-bold text-lg text-blue-800 truncate">
+                  <h1 className="font-bold text-lg text-blue-700 truncate">
                     LaTeX Guide
                   </h1>
-                  <p className="text-[14px] text-blue-700 truncate">
-                    Mathematical Symbols
-                  </p>
                 </div>
               </div>
             )}
@@ -364,7 +361,7 @@ const LatexGuide = ({ setShowGuide }) => {
               {sidebarCollapsed ? (
                 <Menu className="w-4 h-4 text-blue-700" />
               ) : (
-                <PanelRightOpen className="w-4 h-4 text-blue-700" />
+                <PanelRightOpen className="w-4 h-4 text-blue-500" />
               )}
             </button>
           </div>
@@ -399,7 +396,7 @@ const LatexGuide = ({ setShowGuide }) => {
                 onClick={() => setActiveCategory(categoryKey)}
                 className={`w-full text-left px-2 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-700 text-white"
                     : "hover:bg-blue-100 text-blue-700"
                 }`}
                 role="option"
@@ -407,9 +404,7 @@ const LatexGuide = ({ setShowGuide }) => {
                 title={sidebarCollapsed ? category.title : ""}
               >
                 <span
-                  className={`p-1 rounded-md ${
-                    isActive ? "bg-blue-200/20" : "bg-blue-100"
-                  }`}
+                  className={`p-1 rounded-md`}
                 >
                   <IconComponent className={`w-4 h-4 ${isActive ? "text-white" : "text-blue-700"}`} />
                 </span>
@@ -418,7 +413,7 @@ const LatexGuide = ({ setShowGuide }) => {
                     <span className="font-medium text-sm truncate">
                       {category.title}
                     </span>
-                    <span className="ml-2 text-[11px] text-blue-500">
+                    <span className={`ml-2 text-[11px] ${isActive ? "text-white" : "text-blue-500"}`}>
                       {category.items.length}
                     </span>
                   </div>
@@ -432,7 +427,7 @@ const LatexGuide = ({ setShowGuide }) => {
       {/* Main */}
       <div className="flex-1 bg-white">
         {/* Header */}
-        <header className="bg-white border-b border-blue-200 px-3 sm:px-4 py-2 sticky top-0 z-20">
+        <header className="bg-blue-50 border-b border-blue-200 px-3 sm:px-4 py-2 sticky top-0 z-20">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {/* Left: section title */}
             <div className="flex items-center gap-2 min-w-[180px]">
@@ -534,7 +529,7 @@ const LatexGuide = ({ setShowGuide }) => {
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => setShowHelp(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-md border border-blue-300 text-blue-700 hover:bg-blue-50 text-sm"
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-md border border-blue-300 text-blue-700 bg-white hover:bg-blue-50 text-sm"
                 title="How to use"
                 aria-haspopup="dialog"
                 aria-expanded={showHelp}

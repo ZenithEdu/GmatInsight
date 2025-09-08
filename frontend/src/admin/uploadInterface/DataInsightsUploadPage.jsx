@@ -62,15 +62,16 @@ const DataInsightsUploadPage = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white shadow-sm">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
-              className="text-gray-600 hover:text-gray-800"
-              title="Back to Data Insights"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-             <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+            onClick={() => navigate(-1)}
+            className="p-2 text-gray-600 hover:text-emerald-600 transition-colors rounded-lg hover:bg-emerald-50"
+            title="Back to Verbal Vault"
+            aria-label="Back to Verbal Vault"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+            <h1 className="text-2xl font-bold text-emerald-800 flex items-center">
               <PieChart className="w-6 h-6 text-emerald-600 mr-2" />
               Data Insights Vault
             </h1>

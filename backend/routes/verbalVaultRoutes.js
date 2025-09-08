@@ -2,29 +2,90 @@ const express = require('express');
 const router = express.Router();
 const VerbalVaultQuestion = require('../models/verbalVaultQuestion');
 
-// Generate questionId in V-001 format
-async function generateQuestionId(count) {
-  return `V-${String(count + 1).padStart(3, '0')}`;
-}
 
 // Add verbal vault question
-router.post('/VerbalVaultQuestions', async (req, res) => {
+router.post('/verbalVaultQuestions', async (req, res) => {
   try {
     const data = Array.isArray(req.body) ? req.body : [req.body];
     if (!data || !Array.isArray(data) || data.length === 0) {
       return res.status(400).json({ error: 'No questions provided for upload.' });
     }
 
-    const questionCount = await VerbalVaultQuestion.countDocuments();
-    const questions = data.map((q, idx) => ({
-      ...q,
-      questionId: `V-${String(questionCount + idx + 1).padStart(3, '0')}`,
-      metadata: {
-        source: Array.isArray(req.body) ? 'excel' : 'manual',
-        createdAt: new Date(),
-      },
-      explanation: q.explanation || "",
-    }));
+    // Validate and sanitize each question
+    let questionCount = await VerbalVaultQuestion.countDocuments();
+    // Only require these fields
+    const requiredFields = [
+      "set_id",
+      "topic",
+      "type",
+      "question",
+      "difficulty",
+      "level",
+      "answer",
+      "layout"
+    ];
+    const questions = data.map((q, idx) => {
+      // Accept both "options" array or optionA, optionB, ...
+      let options = [];
+      if (Array.isArray(q.options)) {
+        options = q.options.filter(opt => typeof opt === "string" && opt.trim() !== "");
+      } else {
+        // Try to build options from optionA, optionB, ...
+        options = [
+          q.optionA || q.optiona || "",
+          q.optionB || q.optionb || "",
+          q.optionC || q.optionc || "",
+          q.optionD || q.optiond || "",
+          q.optionE || q.optione || ""
+        ].filter(opt => typeof opt === "string" && opt.trim() !== "");
+      }
+
+      // Ensure required fields
+      for (const field of requiredFields) {
+        if (!q[field] || q[field].toString().trim() === "") {
+          throw new Error(`Question ${idx + 1} is missing required field: ${field}`);
+        }
+      }
+      if (options.length < 2) {
+        throw new Error(`Question ${idx + 1} must have at least 2 non-empty options.`);
+      }
+
+      // Ensure answer is present and valid
+      let answer = q.answer;
+      if (!answer || !options.includes(answer)) {
+        // Try to map answer letter to value
+        const answerIdx = ["A", "B", "C", "D", "E"].indexOf((q.answer || "").toString().toUpperCase().trim());
+        if (answerIdx >= 0 && answerIdx < options.length) {
+          answer = options[answerIdx];
+        } else {
+          answer = options[0];
+        }
+      }
+
+      // Explanation and passage are optional
+      let explanation = q.explanation || "";
+      let passage = q.passage || "";
+
+      // Ensure type
+      let type = q.type;
+      if (!type || typeof type !== "string" || !type.trim()) {
+        type = "Verbal";
+      }
+
+      return {
+        ...q,
+        options,
+        type,
+        answer,
+        explanation,
+        passage,
+        questionId: `V-${String(questionCount + idx + 1).padStart(3, '0')}`,
+        metadata: {
+          source: Array.isArray(req.body) ? 'excel' : 'manual',
+          createdAt: new Date(),
+        }
+      };
+    });
 
     const insertedQuestions = await VerbalVaultQuestion.insertMany(questions);
     res.status(201).json(insertedQuestions);
