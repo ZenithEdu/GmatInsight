@@ -37,6 +37,7 @@ import Admin from "./admin/Admin.jsx";
 import QuestionVault from "./admin/vault/QuestionVault.jsx";
 import VerbalReasoningStructure from "./admin/verbalStructure/VerbalReasoningStructure.jsx";
 import AssessmentManager from "./admin/assessments/AssessmentManager.jsx";
+import AdminProtectedRoute from "./admin/components/AdminProtectedRoute";
 
 function App() {
   return (
@@ -67,56 +68,131 @@ function App() {
           <Route path="/test-window" element={<TestWindow />} />{" "}
           {/* Test-taking window */}
           {/* Admin dashboard routes */}
-          <Route path="/admin" element={<Admin />} /> {/* Admin dashboard */}
+          <Route
+            path="/admin"
+            element={
+              <AdminProtectedRoute>
+                <Admin />
+              </AdminProtectedRoute>
+            }
+          />{" "}
+          {/* Admin dashboard */}
           {/* Admin: Vault pages */}
-          <Route path="/question-vault" element={<QuestionVault />} />{" "}
+          <Route
+            path="/question-vault"
+            element={
+              <AdminProtectedRoute>
+                <QuestionVault />
+              </AdminProtectedRoute>
+            }
+          />{" "}
           {/* Question bank */}
           {/* Assessment storage */}
           <Route
-            path="/assessment-Manager"
-            element={<AssessmentManager />}
+            path="/assessment-manager"
+            element={
+              <AdminProtectedRoute>
+                <AssessmentManager />
+              </AdminProtectedRoute>
+            }
           />{" "}
           {/* Manage Quant questions */}
-          <Route path="/quant" element={<QuantPage />} />{" "}
+          <Route
+            path="/quant"
+            element={
+              <AdminProtectedRoute>
+                <QuantPage />
+              </AdminProtectedRoute>
+            }
+          />{" "}
           {/* Manage Verbal questions */}
-          <Route path="/verbal" element={<VerbalPage />} />{" "}
+          <Route
+            path="/verbal"
+            element={
+              <AdminProtectedRoute>
+                <VerbalPage />
+              </AdminProtectedRoute>
+            }
+          />{" "}
           {/* Manage Data Insight section */}
-          <Route path="/data-insight" element={<DataInsightPage />} />{" "}
+          <Route
+            path="/data-insight"
+            element={
+              <AdminProtectedRoute>
+                <DataInsightPage />
+              </AdminProtectedRoute>
+            }
+          />{" "}
           {/* Verbal: Upload pages */}
           <Route
             path="/verbal/verbal-upload-page"
-            element={<VerbalReasoningStructure />}
+            element={
+              <AdminProtectedRoute>
+                <VerbalReasoningStructure />
+              </AdminProtectedRoute>
+            }
           />
           {/* Data Insight: Upload pages */}
           <Route
             path="/data-insight/data-insight-upload-page"
-            element={<DataInsightsUploadPage />}
+            element={
+              <AdminProtectedRoute>
+                <DataInsightsUploadPage />
+              </AdminProtectedRoute>
+            }
           />
           <Route
             path="/quant/quantitative-upload-page"
-            element={<QuantitativeUploadPage />}
+            element={
+              <AdminProtectedRoute>
+                <QuantitativeUploadPage />
+              </AdminProtectedRoute>
+            }
           />
           {/* Data Insight: Structures */}
-          <Route path="/multi-source" element={<MultiSourceStructure />} />{" "}
+          <Route
+            path="/multi-source"
+            element={
+              <AdminProtectedRoute>
+                <MultiSourceStructure />
+              </AdminProtectedRoute>
+            }
+          />{" "}
           {/* Multi-source reasoning format */}
           <Route
             path="/table-analysis"
-            element={<TableAnalysisStructure />}
+            element={
+              <AdminProtectedRoute>
+                <TableAnalysisStructure />
+              </AdminProtectedRoute>
+            }
           />{" "}
           {/* Table analysis format */}
           <Route
             path="/graphics-interpretation"
-            element={<GraphicsInterpretationStructure />}
+            element={
+              <AdminProtectedRoute>
+                <GraphicsInterpretationStructure />
+              </AdminProtectedRoute>
+            }
           />{" "}
           {/* Graphics interpretation format */}
           <Route
             path="/two-part-analysis"
-            element={<TwoPartAnalysisStructure />}
+            element={
+              <AdminProtectedRoute>
+                <TwoPartAnalysisStructure />
+              </AdminProtectedRoute>
+            }
           />{" "}
           {/* Two-part analysis format */}
           <Route
             path="/data-sufficiency"
-            element={<DataSufficiencyStructure />}
+            element={
+              <AdminProtectedRoute>
+                <DataSufficiencyStructure />
+              </AdminProtectedRoute>
+            }
           />{" "}
           {/* Data sufficiency format */}
           {/* Catch-all route for undefined pages */}

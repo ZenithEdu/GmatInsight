@@ -1,4 +1,3 @@
-import React from 'react';
 import { Archive, FileText, HelpCircle, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminHeader from './components/AdminHeader';
@@ -73,7 +72,7 @@ export default function Admin() {
 
                   <button
                     onClick={() => navigate('/assessment-manager')}
-                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-2.5 px-5 rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg cursor-pointer" // Added cursor-pointer
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-2.5 px-5 rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg cursor-pointer"
                   >
                     <Archive className="h-5 w-5" />
                     <span>Assessment Manager</span>
@@ -125,7 +124,7 @@ export default function Admin() {
 
                   <button
                     onClick={() => navigate('/question-vault')}
-                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 px-5 rounded-lg font-medium hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg cursor-pointer" // Added cursor-pointer
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2.5 px-5 rounded-lg font-medium hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 flex items-center justify-center space-x-2 shadow-md hover:shadow-lg cursor-pointer"
                   >
                     <Archive className="h-5 w-5" />
                     <span>Enter Question Vault</span>

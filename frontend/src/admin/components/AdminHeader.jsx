@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { User, Menu, X, LogOut, Shield, ChevronDown } from 'lucide-react';
 
@@ -22,6 +22,31 @@ export default function AdminHeader() {
     setIsProfileOpen(!isProfileOpen);
     if (isMenuOpen) setIsMenuOpen(false);
   };
+
+  // Clear localStorage when all tabs are closed
+  useEffect(() => {
+    const onUnload = () => {
+      // Use a short timeout to allow other tabs to react
+      localStorage.setItem('admin_tab_close', Date.now());
+      setTimeout(() => {
+        // If no other tab resets this, clear admin_token
+        if (!document.hasFocus()) {
+          localStorage.removeItem('admin_token');
+        }
+      }, 100);
+    };
+    const onStorage = (e) => {
+      if (e.key === 'admin_tab_close') {
+        // Another tab closed, but this tab is still open, so do nothing
+      }
+    };
+    window.addEventListener('unload', onUnload);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('unload', onUnload);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">

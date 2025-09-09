@@ -7,6 +7,9 @@ const cors = require('cors');
 const verbalVaultRoutes = require('./routes/verbalVaultRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
 const quantVaultRoutes = require('./routes/quantVaultRoutes');
+// Admin auth routes
+const adminAuthRoutes = require('./routes/adminAuthRoutes');
+
 
 const app = express();
 
@@ -40,6 +43,11 @@ app.get('/', (req, res) => {
 app.use('/api/verbalVault', verbalVaultRoutes);
 app.use('/api/quantVault', quantVaultRoutes);
 app.use('/api/assessments', assessmentRoutes);
+
+
+// admin auth routes
+app.use('/api/admin', adminAuthRoutes);
+
 
 // Catch-all for undefined API routes (404)
 app.use('/api', (req, res) => {
