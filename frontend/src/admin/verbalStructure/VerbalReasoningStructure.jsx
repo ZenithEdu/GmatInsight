@@ -9,7 +9,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import VerbalUploadPage from "../uploadInterface/VerbalUploadPage";
+import VerbalUploadPage from "../uploadInterface/verbal/VerbalUploadPage";
 import Snackbar from "../../components/Snackbar";
 
 const VerbalReasoningStructure = () => {

@@ -239,13 +239,13 @@ const QuantBulkUpload = ({
         throw new Error(errData.error || "Bulk upload failed");
       }
 
-     showSnackbar(`Successfully uploaded ${previewData.length} questions!`, { type: "success" });
-      
       // Clear everything after successful upload
       setExcelFile(null);
       setPreviewData(null);
       setValidationErrors([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
+              showSnackbar(`Successfully uploaded ${previewData.length} questions!`, { type: "success" });
+
     } catch (err) {
       showSnackbar(err.message, { type: "error" });
     } finally {
@@ -580,8 +580,7 @@ const QuantBulkUpload = ({
             >
               {loading ? (
                 <>
-                  <Loading />
-                  Uploading {previewData.length} Questions...
+                  <Loading overlay text={`Uploading ${previewData.length} Questions...`} />
                 </>
               ) : (
                 <>

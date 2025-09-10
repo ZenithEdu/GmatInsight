@@ -14,9 +14,9 @@ import {
   TrendingUp,
   HelpCircle,
 } from "lucide-react";
-import Loading from "../../components/Loading";
+import Loading from "../../../components/Loading";
 import VerbalBulkUpload from "./VerbalBulkUpload";
-import { useSnackbar } from "../../components/SnackbarProvider";
+import { useSnackbar } from "../../../components/SnackbarProvider";
 
 const VerbalUploadPage = () => {
   const [activeTab, setActiveTab] = useState("single");
@@ -215,8 +215,8 @@ showSnackbar("Form cleared", { type: "info" });
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50">
       <Header />
-      
-      {loading && <Loading />}
+
+      {loading && <Loading overlay text="Uploading question..." />}
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
           {/* Left Side: Upload Section */}

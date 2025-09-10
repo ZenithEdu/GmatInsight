@@ -22,6 +22,8 @@ import {
   Minus
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { useSnackbar } from "../../components/SnackbarProvider";
+import Loading from "../../components/Loading"; // Imported Loading component
 
 const DataSufficiencyStructure = () => {
   const [activeTab, setActiveTab] = useState("single");
@@ -30,6 +32,8 @@ const DataSufficiencyStructure = () => {
     statements: ["", ""],
     correctAnswer: null,
   });
+  const [loading, setLoading] = useState(false); // Added loading state
+  const showSnackbar = useSnackbar();
 
   const standardOptions = [
     "Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient.",
@@ -40,14 +44,6 @@ const DataSufficiencyStructure = () => {
   ];
 
   const optionLabels = ["A", "B", "C", "D", "E"];
-
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    type: "success",
-  });
-  const [loading, setLoading] = useState(false);
-
   // Bulk upload states
   const [excelFile, setExcelFile] = useState(null);
   const [previewData, setPreviewData] = useState(null);
@@ -66,15 +62,6 @@ const DataSufficiencyStructure = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  useEffect(() => {
-    if (snackbar.open) {
-      const timer = setTimeout(() => {
-        setSnackbar({ ...snackbar, open: false });
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [snackbar.open]);
-
   const sampleData = {
     contextText:
       "Last week a certain comedian had an audience of 120 people for each of the afternoon performances and 195 people for each of the evening performances. What was the average (arithmetic mean) number of people in an audience if the comedian gave only afternoon and evening performances last week?",
@@ -87,11 +74,7 @@ const DataSufficiencyStructure = () => {
 
   const loadSampleData = () => {
     setQuestionData(sampleData);
-    setSnackbar({
-      open: true,
-      message: "Sample data loaded successfully!",
-      type: "success",
-    });
+    showSnackbar("Sample question loaded!", { type: "success" });
   };
 
   const handleInputChange = (field, value) => {
@@ -147,12 +130,8 @@ const DataSufficiencyStructure = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
-    setSnackbar({
-      open: true,
-      message: "Question exported successfully!",
-      type: "success",
-    });
+
+    showSnackbar("Question exported successfully!", { type: "success" });
   };
 
   const clearForm = () => {
@@ -161,11 +140,7 @@ const DataSufficiencyStructure = () => {
       statements: ["", ""],
       correctAnswer: null,
     });
-    setSnackbar({
-      open: true,
-      message: "Form cleared",
-      type: "info",
-    });
+    showSnackbar("Form cleared", { type: "info" });
   };
 
   const saveQuestion = async () => {
@@ -173,17 +148,9 @@ const DataSufficiencyStructure = () => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      setSnackbar({
-        open: true,
-        message: "Question saved successfully!",
-        type: "success",
-      });
+      showSnackbar("Question saved to database!", { type: "success" });
     } catch (err) {
-      setSnackbar({
-        open: true,
-        message: "Error saving question",
-        type: "error",
-      });
+      showSnackbar("Error saving question", { type: "error" });
     } finally {
       setLoading(false);
     }
@@ -218,31 +185,19 @@ const DataSufficiencyStructure = () => {
         file.type === "application/vnd.ms-excel"
       ) {
         setExcelFile(file);
-        setSnackbar({
-          open: true,
-          message: "File selected! Processing preview...",
-          type: "success",
-        });
-        
+        showSnackbar("File selected! Processing preview...", { type: "info" });
+
         // Auto preview after file selection
         await previewExcelFile(file);
       } else {
-        setSnackbar({
-          open: true,
-          message: "Please select a valid Excel file (.xlsx or .xls)",
-          type: "error",
-        });
+        showSnackbar("Please upload a valid Excel file (.xlsx or .xls)", { type: "error" });
       }
     }
   };
 
   const previewExcelFile = async (file = excelFile) => {
     if (!file) {
-      setSnackbar({
-        open: true,
-        message: "Please select a file first",
-        type: "error",
-      });
+      showSnackbar("No file selected for preview", { type: "error" });
       return;
     }
 
@@ -254,11 +209,8 @@ const DataSufficiencyStructure = () => {
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length < 2) {
-        setSnackbar({
-          open: true,
-          message: "Excel file is empty or has no data rows",
-          type: "error",
-        });
+        setValidationErrors(["The Excel file is empty or has no data rows."]);
+        setLoading(false);
         return;
       }
 
@@ -352,24 +304,13 @@ const DataSufficiencyStructure = () => {
       setPreviewData(processedQuestions);
 
       if (errors.length > 0) {
-        setSnackbar({
-          open: true,
-          message: `File processed with ${errors.length} validation errors.`,
-          type: "warning",
-        });
+        setValidationErrors(errors);
+        showSnackbar(`File processed with ${errors.length} validation errors.`, { type: "warning" });
       } else {
-        setSnackbar({
-          open: true,
-          message: `Preview ready! Found ${processedQuestions.length} valid questions.`,
-          type: "success",
-        });
+        showSnackbar(`Preview ready! Found ${processedQuestions.length} valid questions.`, { type: "success" });
       }
     } catch (err) {
-      setSnackbar({
-        open: true,
-        message: "Error processing file: " + err.message,
-        type: "error",
-      });
+      showSnackbar("Error processing file: " + err.message, { type: "error" });
     } finally {
       setLoading(false);
     }
@@ -377,20 +318,12 @@ const DataSufficiencyStructure = () => {
 
   const processExcelFile = async () => {
     if (!previewData || previewData.length === 0) {
-      setSnackbar({
-        open: true,
-        message: "No data to upload",
-        type: "error",
-      });
+      showSnackbar("No preview data to upload", { type: "error" });
       return;
     }
 
     if (validationErrors.length > 0) {
-      setSnackbar({
-        open: true,
-        message: "Please fix validation errors before uploading",
-        type: "error",
-      });
+      showSnackbar("Please fix validation errors before uploading", { type: "error" });
       return;
     }
 
@@ -398,20 +331,16 @@ const DataSufficiencyStructure = () => {
     try {
       // Simulate API call to save questions to database
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setSnackbar({
-        open: true,
-        message: `Successfully uploaded ${previewData.length} questions to database!`,
-        type: "success",
-      });
-      
+
+      showSnackbar(`Successfully uploaded ${previewData.length} questions to database!`, { type: "success" });
+
       // Clear everything after successful upload
       setExcelFile(null);
       setPreviewData(null);
       setValidationErrors([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
+      showSnackbar("Error uploading file: " + err.message, { type: "error" });
     } finally {
       setLoading(false);
     }
@@ -442,11 +371,7 @@ const DataSufficiencyStructure = () => {
     const ws = XLSX.utils.aoa_to_sheet(sampleData);
     XLSX.utils.book_append_sheet(wb, ws, "Data Sufficiency Questions");
     XLSX.writeFile(wb, "Data_Sufficiency_Template.xlsx");
-    setSnackbar({
-      open: true,
-      message: "Excel template downloaded",
-      type: "success",
-    });
+    showSnackbar("Excel template downloaded", { type: "success" });
   };
 
   const clearFile = () => {
@@ -574,12 +499,9 @@ const DataSufficiencyStructure = () => {
   };
 
   return (
+    
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50">
-      {loading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-        </div>
-      )}
+      {loading && <Loading overlay text="Uploading question..." />} {/* Replaced custom overlay with Loading component */}
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -1002,16 +924,6 @@ const DataSufficiencyStructure = () => {
 
       {/* Preview Modal */}
       {renderPreviewModal()}
-
-      {/* Snackbar Notification */}
-      {snackbar.open && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg text-white ${
-          snackbar.type === "success" ? "bg-emerald-600" : 
-          snackbar.type === "error" ? "bg-red-600" : "bg-blue-600"
-        }`}>
-          {snackbar.message}
-        </div>
-      )}
     </div>
   );
 };

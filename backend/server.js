@@ -23,15 +23,6 @@ app.use(cors(corsOptions));
 const PORT = process.env.PORT;
 
 app.use(express.json());
-
-// Debug: log incoming POST bodies for troubleshooting
-app.use((req, res, next) => {
-  if (req.method === "POST") {
-    console.log("Incoming POST to", req.originalUrl, "body:", req.body);
-  }
-  next();
-});
-
 // Connect MongoDB
 connectDB();
 
