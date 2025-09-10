@@ -16,7 +16,7 @@ import * as XLSX from "xlsx";
 
 const VerbalBulkUpload = ({ 
   API_URL, 
-  setSnackbar, 
+  showSnackbar, 
   loading, 
   setLoading
 }) => {
@@ -61,31 +61,19 @@ const VerbalBulkUpload = ({
         file.type === "application/vnd.ms-excel"
       ) {
         setExcelFile(file);
-        setSnackbar({
-          open: true,
-          message: "File selected! Processing preview...",
-          type: "success",
-        });
-        
+        showSnackbar("File selected! Processing preview...", { type: "success" });
+
         // Auto preview after file selection
         await previewExcelFile(file);
       } else {
-        setSnackbar({
-          open: true,
-          message: "Please select a valid Excel file (.xlsx or .xls)",
-          type: "error",
-        });
+        showSnackbar("Please upload a valid Excel file", { type: "error" });
       }
     }
   };
 
   const previewExcelFile = async (file = excelFile) => {
     if (!file) {
-      setSnackbar({
-        open: true,
-        message: "Please select a file first",
-        type: "error",
-      });
+      showSnackbar("Please select a file first", { type: "error" });
       return;
     }
 
@@ -97,11 +85,7 @@ const VerbalBulkUpload = ({
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length < 2) {
-        setSnackbar({
-          open: true,
-          message: "Excel file is empty or has no data rows",
-          type: "error",
-        });
+        showSnackbar("Excel file is empty or has no data rows", { type: "error" });
         setLoading(false);
         return;
       }
@@ -267,45 +251,26 @@ const VerbalBulkUpload = ({
       setPreviewData(processedQuestions);
 
       if (errors.length > 0) {
-        setSnackbar({
-          open: true,
-          message: `File processed with ${errors.length} validation errors.`,
-          type: "warning",
-        });
+        showSnackbar(`File processed with ${errors.length} validation errors.`, { type: "warning" });
       } else {
-        setSnackbar({
-          open: true,
-          message: `Preview ready! Found ${processedQuestions.length} valid questions.`,
-          type: "success",
-        });
+        showSnackbar(`Preview ready! Found ${processedQuestions.length} valid questions.`, { type: "success" });
       }
     } catch (err) {
-      setSnackbar({
-        open: true,
-        message: "Error processing file: " + err.message,
-        type: "error",
-      });
+      showSnackbar("Error processing file: " + err.message, { type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
+
   const processExcelFile = async () => {
     if (!previewData || previewData.length === 0) {
-      setSnackbar({
-        open: true,
-        message: "No data to upload",
-        type: "error",
-      });
+      showSnackbar("No data to upload", { type: "error" });
       return;
     }
 
     if (validationErrors.length > 0) {
-      setSnackbar({
-        open: true,
-        message: "Please fix validation errors before uploading",
-        type: "error",
-      });
+      showSnackbar("Please fix validation errors before uploading", { type: "error" });
       return;
     }
 
@@ -322,19 +287,15 @@ const VerbalBulkUpload = ({
         throw new Error(errData.error || "Bulk upload failed");
       }
 
-      setSnackbar({
-        open: true,
-        message: `Successfully uploaded ${previewData.length} questions!`,
-        type: "success",
-      });
-      
+      showSnackbar(`Successfully uploaded ${previewData.length} questions!`, { type: "success" });
+
       // Clear everything after successful upload
       setExcelFile(null);
       setPreviewData(null);
       setValidationErrors([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
+      showSnackbar(err.message, { type: "error" });
     } finally {
       setLoading(false);
     }
@@ -399,11 +360,7 @@ const VerbalBulkUpload = ({
     const ws = XLSX.utils.aoa_to_sheet(sampleData);
     XLSX.utils.book_append_sheet(wb, ws, "Verbal Questions");
     XLSX.writeFile(wb, "Verbal_Questions_Template.xlsx");
-    setSnackbar({
-      open: true,
-      message: "Excel template downloaded",
-      type: "success",
-    });
+    showSnackbar("Excel template downloaded", { type: "success" });
   };
 
   const clearFile = () => {

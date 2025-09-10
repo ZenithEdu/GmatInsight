@@ -1,6 +1,7 @@
 // Importing required modules and components
 import { BrowserRouter, Routes, Route } from "react-router-dom"; // React Router components for navigation
 import "katex/dist/katex.min.css";
+import { SnackbarProvider } from "./components/SnackbarProvider";
 // Public pages
 import Home from "./pages/home.jsx";
 import LoginPage from "./components/login.jsx";
@@ -43,162 +44,164 @@ function App() {
   return (
     <>
       {/* Setting up the Router */}
-      <BrowserRouter>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Home />} /> {/* Homepage */}
-          <Route path="/login" element={<LoginPage />} />{" "}
-          {/* User login page */}
-          <Route path="/gmat" element={<GmatCoursesSection />} />{" "}
-          {/* GMAT courses list */}
-          <Route path="/gre" element={<GreCoursesSection />} />{" "}
-          {/* GRE courses list */}
-          <Route path="/about" element={<AboutPage />} /> {/* About us page */}
-          <Route path="/contact" element={<ContactUs />} /> {/* Contact page */}
-          <Route path="/testimonials" element={<TestimonialsPage />} />{" "}
-          {/* All testimonials */}
-          <Route path="/user1" element={<TestimonialPage />} />{" "}
-          {/* Single testimonial view */}
-          <Route path="/gmatcourse1" element={<GMATCoursePage />} />{" "}
-          {/* Specific GMAT course details */}
-          <Route path="/knowgmat" element={<GMATFocusFormat />} />{" "}
-          {/* GMAT exam format details */}
-          {/* FLT (Full Length Test) routes */}
-          <Route path="/flt" element={<FLTHome />} /> {/* FLT homepage */}
-          <Route path="/test-window" element={<TestWindow />} />{" "}
-          {/* Test-taking window */}
-          {/* Admin dashboard routes */}
-          <Route
-            path="/admin"
-            element={
-              <AdminProtectedRoute>
-                <Admin />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Admin dashboard */}
-          {/* Admin: Vault pages */}
-          <Route
-            path="/question-vault"
-            element={
-              <AdminProtectedRoute>
-                <QuestionVault />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Question bank */}
-          {/* Assessment storage */}
-          <Route
-            path="/assessment-manager"
-            element={
-              <AdminProtectedRoute>
-                <AssessmentManager />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Manage Quant questions */}
-          <Route
-            path="/quant"
-            element={
-              <AdminProtectedRoute>
-                <QuantPage />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Manage Verbal questions */}
-          <Route
-            path="/verbal"
-            element={
-              <AdminProtectedRoute>
-                <VerbalPage />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Manage Data Insight section */}
-          <Route
-            path="/data-insight"
-            element={
-              <AdminProtectedRoute>
-                <DataInsightPage />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Verbal: Upload pages */}
-          <Route
-            path="/verbal/verbal-upload-page"
-            element={
-              <AdminProtectedRoute>
-                <VerbalReasoningStructure />
-              </AdminProtectedRoute>
-            }
-          />
-          {/* Data Insight: Upload pages */}
-          <Route
-            path="/data-insight/data-insight-upload-page"
-            element={
-              <AdminProtectedRoute>
-                <DataInsightsUploadPage />
-              </AdminProtectedRoute>
-            }
-          />
-          <Route
-            path="/quant/quantitative-upload-page"
-            element={
-              <AdminProtectedRoute>
-                <QuantitativeUploadPage />
-              </AdminProtectedRoute>
-            }
-          />
-          {/* Data Insight: Structures */}
-          <Route
-            path="/multi-source"
-            element={
-              <AdminProtectedRoute>
-                <MultiSourceStructure />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Multi-source reasoning format */}
-          <Route
-            path="/table-analysis"
-            element={
-              <AdminProtectedRoute>
-                <TableAnalysisStructure />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Table analysis format */}
-          <Route
-            path="/graphics-interpretation"
-            element={
-              <AdminProtectedRoute>
-                <GraphicsInterpretationStructure />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Graphics interpretation format */}
-          <Route
-            path="/two-part-analysis"
-            element={
-              <AdminProtectedRoute>
-                <TwoPartAnalysisStructure />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Two-part analysis format */}
-          <Route
-            path="/data-sufficiency"
-            element={
-              <AdminProtectedRoute>
-                <DataSufficiencyStructure />
-              </AdminProtectedRoute>
-            }
-          />{" "}
-          {/* Data sufficiency format */}
-          {/* Catch-all route for undefined pages */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <SnackbarProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Home />} /> {/* Homepage */}
+            <Route path="/login" element={<LoginPage />} />{" "}
+            {/* User login page */}
+            <Route path="/gmat" element={<GmatCoursesSection />} />{" "}
+            {/* GMAT courses list */}
+            <Route path="/gre" element={<GreCoursesSection />} />{" "}
+            {/* GRE courses list */}
+            <Route path="/about" element={<AboutPage />} /> {/* About us page */}
+            <Route path="/contact" element={<ContactUs />} /> {/* Contact page */}
+            <Route path="/testimonials" element={<TestimonialsPage />} />{" "}
+            {/* All testimonials */}
+            <Route path="/user1" element={<TestimonialPage />} />{" "}
+            {/* Single testimonial view */}
+            <Route path="/gmatcourse1" element={<GMATCoursePage />} />{" "}
+            {/* Specific GMAT course details */}
+            <Route path="/knowgmat" element={<GMATFocusFormat />} />{" "}
+            {/* GMAT exam format details */}
+            {/* FLT (Full Length Test) routes */}
+            <Route path="/flt" element={<FLTHome />} /> {/* FLT homepage */}
+            <Route path="/test-window" element={<TestWindow />} />{" "}
+            {/* Test-taking window */}
+            {/* Admin dashboard routes */}
+            <Route
+              path="/admin"
+              element={
+                <AdminProtectedRoute>
+                  <Admin />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Admin dashboard */}
+            {/* Admin: Vault pages */}
+            <Route
+              path="/question-vault"
+              element={
+                <AdminProtectedRoute>
+                  <QuestionVault />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Question bank */}
+            {/* Assessment storage */}
+            <Route
+              path="/assessment-manager"
+              element={
+                <AdminProtectedRoute>
+                  <AssessmentManager />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Manage Quant questions */}
+            <Route
+              path="/quant"
+              element={
+                <AdminProtectedRoute>
+                  <QuantPage />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Manage Verbal questions */}
+            <Route
+              path="/verbal"
+              element={
+                <AdminProtectedRoute>
+                  <VerbalPage />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Manage Data Insight section */}
+            <Route
+              path="/data-insight"
+              element={
+                <AdminProtectedRoute>
+                  <DataInsightPage />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Verbal: Upload pages */}
+            <Route
+              path="/verbal/verbal-upload-page"
+              element={
+                <AdminProtectedRoute>
+                  <VerbalReasoningStructure />
+                </AdminProtectedRoute>
+              }
+            />
+            {/* Data Insight: Upload pages */}
+            <Route
+              path="/data-insight/data-insight-upload-page"
+              element={
+                <AdminProtectedRoute>
+                  <DataInsightsUploadPage />
+                </AdminProtectedRoute>
+              }
+            />
+            <Route
+              path="/quant/quantitative-upload-page"
+              element={
+                <AdminProtectedRoute>
+                  <QuantitativeUploadPage />
+                </AdminProtectedRoute>
+              }
+            />
+            {/* Data Insight: Structures */}
+            <Route
+              path="/multi-source"
+              element={
+                <AdminProtectedRoute>
+                  <MultiSourceStructure />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Multi-source reasoning format */}
+            <Route
+              path="/table-analysis"
+              element={
+                <AdminProtectedRoute>
+                  <TableAnalysisStructure />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Table analysis format */}
+            <Route
+              path="/graphics-interpretation"
+              element={
+                <AdminProtectedRoute>
+                  <GraphicsInterpretationStructure />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Graphics interpretation format */}
+            <Route
+              path="/two-part-analysis"
+              element={
+                <AdminProtectedRoute>
+                  <TwoPartAnalysisStructure />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Two-part analysis format */}
+            <Route
+              path="/data-sufficiency"
+              element={
+                <AdminProtectedRoute>
+                  <DataSufficiencyStructure />
+                </AdminProtectedRoute>
+              }
+            />{" "}
+            {/* Data sufficiency format */}
+            {/* Catch-all route for undefined pages */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </SnackbarProvider>
     </>
   );
 }

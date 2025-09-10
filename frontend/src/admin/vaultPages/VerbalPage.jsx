@@ -19,6 +19,7 @@ import { RefreshCw } from 'lucide-react';
 import Loading from "../../components/Loading";
 import Snackbar from "../../components/Snackbar";
 import Dialog from "../../components/Dialog";
+import { useSnackbar } from "../../components/SnackbarProvider";
 
 const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
 const levelOptions = ["All", "l1", "l2", "l3", "l4", "l5"];
@@ -54,13 +55,9 @@ export default function VerbalPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState("");
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    type: "success",
-  });
   const [confirmDialog, setConfirmDialog] = useState({ open: false, questionId: null });
   const API_URL = import.meta.env.VITE_API_URL;
+  const showSnackbar = useSnackbar();
 
   useEffect(() => {
     setLoading(true);
@@ -130,7 +127,6 @@ export default function VerbalPage() {
     const id = confirmDialog.questionId;
     setDeleteLoading(true);
     setConfirmDialog({ open: false, type: "", questionId: null });
-    setSnackbar({ open: false, message: "", type: "success" });
     try {
       const res = await fetch(
         `${API_URL}/verbalVault/VerbalVaultQuestions/${id}`,
@@ -147,16 +143,12 @@ export default function VerbalPage() {
       if (!refreshed.ok) throw new Error("Failed to reload questions");
       const data = await refreshed.json();
       setQuestions(data);
-      setSnackbar({
-        open: true,
-        message: "Question deleted successfully!",
-        type: "success",
-      });
+      showSnackbar("Question deleted successfully", { type: "success" });
       if (selectedQuestion && selectedQuestion.questionId === id) {
         closePreview();
       }
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
+      showSnackbar(err.message, { type: "error" });
     } finally {
       setDeleteLoading(false);
     }
@@ -346,7 +338,7 @@ export default function VerbalPage() {
   const confirmRegenerate = useCallback(async () => {
     if (!confirmDialog.questionId) return;
     setConfirmDialog({ open: false, questionId: null });
-    setSnackbar({ open: false, message: "", type: "success" });
+    showSnackbar("Question regenerated successfully", { type: "success" });
     try {
       const res = await fetch(
         `${API_URL}/verbalVault/VerbalVaultQuestions/${confirmDialog.questionId}/regenerate`,
@@ -361,13 +353,9 @@ export default function VerbalPage() {
       if (!refreshed.ok) throw new Error("Failed to reload questions");
       const data = await refreshed.json();
       setQuestions(data);
-      setSnackbar({
-        open: true,
-        message: "Question regenerated and added to the end",
-        type: "success",
-      });
+      showSnackbar("Question regenerated and added to the end", { type: "success" });
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
+      showSnackbar(err.message, { type: "error" });
     }
   }, [API_URL, confirmDialog.questionId]);
 
@@ -1222,12 +1210,6 @@ export default function VerbalPage() {
           </div>
         </div>
       )}
-      <Snackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        type={snackbar.type}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      />
     </div>
   );
 }

@@ -14,9 +14,9 @@ import {
   TrendingUp,
   HelpCircle,
 } from "lucide-react";
-import Snackbar from "../../components/Snackbar";
 import Loading from "../../components/Loading";
 import VerbalBulkUpload from "./VerbalBulkUpload";
+import { useSnackbar } from "../../components/SnackbarProvider";
 
 const VerbalUploadPage = () => {
   const [activeTab, setActiveTab] = useState("single");
@@ -34,11 +34,8 @@ const VerbalUploadPage = () => {
   });
   const [setId, setSetId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    type: "success",
-  });
+  const showSnackbar = useSnackbar();
+
   const navigate = useNavigate();
 
   const API_URL = import.meta.env.VITE_API_URL;
@@ -87,51 +84,32 @@ const VerbalUploadPage = () => {
   // Single question save (POST to backend)
   const saveQuestion = async () => {
     if (!setId.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Please enter Set ID",
-        type: "error",
-      });
+      showSnackbar("Please enter Set ID", { type: "error" });
+
       return;
     }
     if (!singleQuestion.question.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Please enter a question",
-        type: "error",
-      });
+      showSnackbar("Please enter a question", { type: "error" });
       return;
     }
     if (!singleQuestion.correctAnswer) {
-      setSnackbar({
-        open: true,
-        message: "Please select the correct answer",
-        type: "error",
-      });
+      showSnackbar("Please select the correct answer", { type: "error" });
       return;
     }
     if (!singleQuestion.topic) {
-      setSnackbar({
-        open: true,
-        message: "Please select a topic",
-        type: "error",
-      });
+      showSnackbar("Please select a topic", { type: "error" });
       return;
     }
     if (!singleQuestion.type) {
-      setSnackbar({
-        open: true,
-        message: "Please select a question type",
-        type: "error",
-      });
+      showSnackbar("Please select a question type", { type: "error" });
       return;
     }
- if (!singleQuestion.level) {
-      setSnackbar({
-        open: true,
-        message: "Please select a level",
-        type: "error",
-      });
+    if (!singleQuestion.type) {
+      showSnackbar("Please select a question type", { type: "error" });
+      return;
+    }
+    if (!singleQuestion.level) {
+      showSnackbar("Please select a level", { type: "error" });
       return;
     }
     setLoading(true);
@@ -140,6 +118,7 @@ const VerbalUploadPage = () => {
       const answerIdx = ["A", "B", "C", "D", "E"].indexOf(
         singleQuestion.correctAnswer
       );
+
       const payload = {
         set_id: setId,
         topic: singleQuestion.topic,
@@ -162,15 +141,11 @@ const VerbalUploadPage = () => {
         const errData = await res.json();
         throw new Error(errData.error || "Failed to save question");
       }
-      setSnackbar({
-        open: true,
-        message: "Question saved successfully!",
-        type: "success",
-      });
+      showSnackbar("Question saved successfully", { type: "success" });
       clearForm();
       setSetId("");
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
+      showSnackbar(err.message, { type: "error" });
     } finally {
       setLoading(false);
     }
@@ -190,11 +165,7 @@ const VerbalUploadPage = () => {
       layout: "single",
     });
     setSetId("");
-    setSnackbar({
-      open: true,
-      message: "Form cleared",
-      type: "info",
-    });
+showSnackbar("Form cleared", { type: "info" });
   };
 
   const addSampleData = () => {
@@ -217,11 +188,7 @@ const VerbalUploadPage = () => {
       passage: "In recent decades, the tension between economic development and environmental protection has become increasingly apparent. While industries argue for fewer restrictions to promote growth, environmentalists point to the irreversible damage caused by unchecked industrialization...",
       layout: "single",
     });
-    setSnackbar({
-      open: true,
-      message: "Sample data loaded",
-      type: "success",
-    });
+    showSnackbar("Sample data loaded", { type: "success" });
   };
 
   const Header = () => (
@@ -248,12 +215,7 @@ const VerbalUploadPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50">
       <Header />
-      <Snackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        type={snackbar.type}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      />
+      
       {loading && <Loading />}
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
@@ -561,7 +523,7 @@ const VerbalUploadPage = () => {
             {activeTab === "bulk" && (
               <VerbalBulkUpload
                 API_URL={API_URL}
-                setSnackbar={setSnackbar}
+                showSnackbar={showSnackbar}
                 loading={loading}
                 setLoading={setLoading}
               />

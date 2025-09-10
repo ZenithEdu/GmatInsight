@@ -25,10 +25,11 @@ import { useNavigate } from "react-router-dom";
 
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
-import Snackbar from "../../../components/Snackbar";
 import Loading from "../../../components/Loading";
 import LatexGuide from "../../components/LatexGuide";
 import QuantBulkUpload from "./QuantBulkUpload"; // Import the new component
+import { useSnackbar } from "../../../components/SnackbarProvider";
+
 
 const QuantitativeUploadPage = () => {
   const [activeTab, setActiveTab] = useState("single");
@@ -51,11 +52,7 @@ const QuantitativeUploadPage = () => {
   const [customLatex, setCustomLatex] = useState("");
   const [setId, setSetId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    type: "success",
-  });
+  const showSnackbar = useSnackbar();
   const [showFieldSelectionHint, setShowFieldSelectionHint] = useState(true);
   const navigate = useNavigate();
 
@@ -304,51 +301,28 @@ const QuantitativeUploadPage = () => {
   // Single question save (POST to backend)
   const saveQuestion = async () => {
     if (!setId.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Please enter Set ID",
-        type: "error",
-      });
+      showSnackbar("Please enter a Set ID", { type: "error" });
       return;
     }
     if (!singleQuestion.question.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Please enter a question",
-        type: "error",
-      });
+      showSnackbar("Please enter a question", { type: "error" });
       return;
     }
     if (!singleQuestion.correctAnswer) {
-      setSnackbar({
-        open: true,
-        message: "Please select the correct answer",
-        type: "error",
-      });
+      showSnackbar("Please select the correct answer", { type: "error" });
       return;
     }
     if (!singleQuestion.topic) {
-      setSnackbar({
-        open: true,
-        message: "Please select a topic",
-        type: "error",
-      });
+      showSnackbar("Please select a topic", { type: "error" });
       return;
     }
     if (!singleQuestion.type) {
-      setSnackbar({
-        open: true,
-        message: "Please select a question type",
-        type: "error",
-      });
+      showSnackbar("Please select a question type", { type: "error" });
+
       return;
     }
     if (!singleQuestion.level) {
-      setSnackbar({
-        open: true,
-        message: "Please select a level",
-        type: "error",
-      });
+      showSnackbar("Please select a level", { type: "error" });
       return;
     }
 
@@ -378,15 +352,11 @@ const QuantitativeUploadPage = () => {
         const errData = await res.json();
         throw new Error(errData.error || "Failed to save question");
       }
-      setSnackbar({
-        open: true,
-        message: "Question saved successfully!",
-        type: "success",
-      });
+      showSnackbar("Question saved successfully", { type: "success" });
       clearForm();
       setSetId("");
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
+      showSnackbar(err.message, { type: "error" });
     } finally {
       setLoading(false);
     }
@@ -405,11 +375,7 @@ const QuantitativeUploadPage = () => {
     });
     setActiveField(null);
     setSetId("");
-    setSnackbar({
-      open: true,
-      message: "Form cleared",
-      type: "info",
-    });
+    showSnackbar("Form cleared", { type: "info" });
   };
 
   const addSampleData = () => {
@@ -431,11 +397,7 @@ const QuantitativeUploadPage = () => {
       type: "Problem Solving",
       level: "L2",
     });
-    setSnackbar({
-      open: true,
-      message: "Sample data loaded",
-      type: "success",
-    });
+    showSnackbar("Sample data loaded", { type: "success" });
   };
 
   const renderTextWithLatex = (text) => {
@@ -457,19 +419,11 @@ const QuantitativeUploadPage = () => {
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        setSnackbar({
-          open: true,
-          message: "LaTeX code copied to clipboard!",
-          type: "success",
-        });
+        showSnackbar("Copied to clipboard", { type: "success" });
       })
       .catch((err) => {
         console.error("Failed to copy: ", err);
-        setSnackbar({
-          open: true,
-          message: "Failed to copy to clipboard",
-          type: "error",
-        });
+        showSnackbar("Failed to copy to clipboard", { type: "error" });
       });
   };
 
@@ -523,12 +477,6 @@ const QuantitativeUploadPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Header />
-      <Snackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        type={snackbar.type}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      />
       {loading && <Loading />}
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-start gap-6">
@@ -869,7 +817,7 @@ const QuantitativeUploadPage = () => {
             {activeTab === "bulk" && (
               <QuantBulkUpload
                 API_URL={API_URL}
-                setSnackbar={setSnackbar}
+                showSnackbar={showSnackbar}
                 loading={loading}
                 setLoading={setLoading}
                 renderTextWithLatex={renderTextWithLatex}

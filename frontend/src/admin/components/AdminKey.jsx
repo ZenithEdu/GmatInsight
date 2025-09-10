@@ -1,22 +1,19 @@
 import { useState, useEffect } from "react";
 import { Lock, Eye, EyeOff, Shield, CheckCircle, AlertTriangle, Loader2, KeyRound } from "lucide-react";
-
+import { useSnackbar } from "../../components/SnackbarProvider";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function AdminKey({ onSuccess }) {
   const [key, setKey] = useState("");
-  const [error, setError] = useState("");
   const [mode, setMode] = useState("loading");
   const [confirmKey, setConfirmKey] = useState("");
   const [creating, setCreating] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [showConfirmKey, setShowConfirmKey] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Check if admin key exists in DB
+  const showSnackbar = useSnackbar();
   useEffect(() => {
     setKey("");
-    setError("");
     setMode("loading");
     fetch(`${API_URL}/admin/key-exists`)
       .then((res) => res.json())
@@ -29,26 +26,26 @@ export default function AdminKey({ onSuccess }) {
         setTimeout(() => {
           setMode("enter");
         }, 1000);
+        showSnackbar("Failed to connect to server. Please try again.", { type: "error", duration: 5000 });
       });
   }, []);
 
   // Create admin key
   const handleCreate = async () => {
     if (!key || !confirmKey) {
-      setError("Please enter and confirm the admin key.");
+      showSnackbar("Please enter and confirm the admin key.", { type: "error" });
       return;
     }
     if (key.length < 6) {
-      setError("Admin key must be at least 6 characters long.");
+      showSnackbar("Admin key must be at least 6 characters long.", { type: "error" });
       return;
     }
     if (key !== confirmKey) {
-      setError("Keys do not match.");
+      showSnackbar("Keys do not match.", { type: "error" });
       return;
     }
     
     setCreating(true);
-    setError("");
     
     try {
       const res = await fetch(`${API_URL}/admin/set-key`, {
@@ -57,14 +54,12 @@ export default function AdminKey({ onSuccess }) {
         body: JSON.stringify({ key }),
       });
       if (!res.ok) {
-        setError("Failed to create admin key. Please try again.");
         setCreating(false);
         return;
       }
       
       // Success animation
       setTimeout(() => {
-        setError("");
         setMode("enter");
         setKey("");
         setConfirmKey("");
@@ -72,7 +67,7 @@ export default function AdminKey({ onSuccess }) {
       }, 1500);
       
     } catch {
-      setError("Server connection failed. Please try again.");
+      showSnackbar("Server connection failed. Please try again.", { type: "error" });
       setCreating(false);
     }
   };
@@ -80,12 +75,11 @@ export default function AdminKey({ onSuccess }) {
   // Enter admin key
   const handleSubmit = async () => {
     if (!key) {
-      setError("Please enter the admin key.");
+      showSnackbar("Please enter the admin key.", { type: "error" });
       return;
     }
     
     setIsSubmitting(true);
-    setError("");
     
     try {
       const res = await fetch(`${API_URL}/admin/verify-key`, {
@@ -93,9 +87,11 @@ export default function AdminKey({ onSuccess }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key }),
       });
-      
+      if (res.status === 200) {
+        showSnackbar("Access granted. Redirecting...", { type: "success" });
+      }
       if (!res.ok) {
-        setError("Incorrect admin key. Access denied.");
+        showSnackbar("Invalid admin key. Please try again.", { type: "error" });
         setIsSubmitting(false);
         return;
       }
@@ -113,7 +109,7 @@ export default function AdminKey({ onSuccess }) {
       }, 1200);
       
     } catch {
-      setError("Server connection failed. Please try again.");
+      showSnackbar("Server connection failed. Please try again.", { type: "error" });
       setIsSubmitting(false);
     }
   };
@@ -181,7 +177,7 @@ export default function AdminKey({ onSuccess }) {
                   value={key}
                   onChange={(e) => {
                     setKey(e.target.value);
-                    setError("");
+
                   }}
                   onKeyDown={(e) => handleKeyPress(e, handleCreate)}
                   autoFocus
@@ -206,7 +202,6 @@ export default function AdminKey({ onSuccess }) {
                   value={confirmKey}
                   onChange={(e) => {
                     setConfirmKey(e.target.value);
-                    setError("");
                   }}
                   onKeyDown={(e) => handleKeyPress(e, handleCreate)}
                 />
@@ -219,13 +214,6 @@ export default function AdminKey({ onSuccess }) {
               </div>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-center gap-2 text-red-700 bg-red-50 p-3 rounded-xl border border-red-200 animate-shake">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                <span className="font-medium text-sm">{error}</span>
-              </div>
-            )}
 
             {/* Create Button */}
             <button
@@ -296,7 +284,6 @@ export default function AdminKey({ onSuccess }) {
                 value={key}
                 onChange={(e) => {
                   setKey(e.target.value);
-                  setError("");
                 }}
                 onKeyDown={(e) => handleKeyPress(e, handleSubmit)}
                 autoFocus
@@ -310,13 +297,6 @@ export default function AdminKey({ onSuccess }) {
             </div>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="flex items-center gap-2 text-red-700 bg-red-50 p-3 rounded-xl border border-red-200 animate-pulse">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span className="font-medium text-sm">{error}</span>
-            </div>
-          )}
 
           {/* Submit Button */}
           <button

@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, BookOpen, Clock, Trash2, X, Edit } from 'lucide-react';
 import AdminHeader from '../components/AdminHeader';
 import Loading from '../../components/Loading';
-import Snackbar from '../../components/Snackbar';
-
+import { useSnackbar } from '../../components/SnackbarProvider';
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function AssessmentManager() {
@@ -19,9 +18,9 @@ export default function AssessmentManager() {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
   const modalRef = useRef(null);
   const firstInputRef = useRef(null);
+  const showSnackbar = useSnackbar();
 
   // Load assessments
   useEffect(() => {
@@ -88,9 +87,9 @@ export default function AssessmentManager() {
           : [...prev, saved]
       );
       closeModal();
-      setSnackbar({ open: true, message: `Assessment ${isEditing ? 'updated' : 'created'} successfully!` });
+      showSnackbar(`Assessment ${isEditing ? 'updated' : 'created'} successfully!`, { type: "success" });
     } catch {
-      setSnackbar({ open: true, message: 'Error saving assessment.' });
+      showSnackbar('Error saving assessment.', { type: "error" });
     }
     setIsLoading(false);
   };
@@ -122,24 +121,13 @@ export default function AssessmentManager() {
       const res = await fetch(`${API_URL}/assessments/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       setAssessments((prev) => prev.filter((a) => a.assessmentId !== id));
-      setSnackbar({ open: true, message: 'Assessment deleted successfully!' });
+      showSnackbar('Assessment deleted successfully!', { type: "success" });
     } catch {
-      setSnackbar({ open: true, message: 'Error deleting assessment.' });
+      showSnackbar('Error deleting assessment.', { type: "error" });
     }
     setIsLoading(false);
   };
 
-  const SkeletonRow = () => (
-    <tr>
-      {Array(8)
-        .fill(0)
-        .map((_, i) => (
-          <td key={i} className="px-6 py-4">
-            <div className="h-4 bg-gray-300 rounded animate-pulse w-full"></div>
-          </td>
-        ))}
-    </tr>
-  );
 
   return (
     <>
@@ -289,13 +277,6 @@ export default function AssessmentManager() {
             </div>
           )}
 
-          {/* Snackbar */}
-          <Snackbar
-            open={snackbar.open}
-            message={snackbar.message}
-            type={snackbar.type || 'success'}
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
-          />
         </div>
       </div>
 

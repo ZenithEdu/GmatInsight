@@ -14,10 +14,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Loading from "../../components/Loading";
-import Snackbar from "../../components/Snackbar";
 import Dialog from "../../components/Dialog";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
+import { useSnackbar } from "../../components/SnackbarProvider";
 
 const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
 const levelOptions = ["All", "L1", "L2", "L3", "L4", "L5"];
@@ -38,11 +38,7 @@ export default function QuantPage() {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    type: "success",
-  });
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedQuestion, setEditedQuestion] = useState(null);
   const [formErrors, setFormErrors] = useState({});
@@ -53,6 +49,7 @@ export default function QuantPage() {
     questionId: null,
   });
   const API_URL = import.meta.env.VITE_API_URL;
+  const showSnackbar = useSnackbar();
 
   // Fetch quant questions from backend
   useEffect(() => {
@@ -67,7 +64,7 @@ export default function QuantPage() {
         setLoading(false);
       })
       .catch((err) => {
-        setSnackbar({ open: true, message: err.message, type: "error" });
+        showSnackbar(err.message, { type: "error" });
         setQuestions([]);
         setLoading(false);
       });
@@ -123,7 +120,6 @@ export default function QuantPage() {
     const id = confirmDialog.questionId;
     setDeleteLoading(true);
     setConfirmDialog({ open: false, type: "", questionId: null });
-    setSnackbar({ open: false, message: "", type: "success" });
     try {
       const res = await fetch(
         `${API_URL}/quantVault/QuantVaultQuestions/${id}`,
@@ -140,16 +136,12 @@ export default function QuantPage() {
       if (!refreshed.ok) throw new Error("Failed to reload questions");
       const data = await refreshed.json();
       setQuestions(data);
-      setSnackbar({
-        open: true,
-        message: "Question deleted successfully!",
-        type: "success",
-      });
+      showSnackbar("Question deleted successfully!", { type: "success" });
       if (selectedQuestion && selectedQuestion.questionId === id) {
         closePreview();
       }
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
+      showSnackbar(err.message, { type: "error" });
     } finally {
       setDeleteLoading(false);
     }
@@ -243,14 +235,10 @@ export default function QuantPage() {
         setSelectedQuestion(updatedQuestion);
         setIsEditing(false);
         setHasUnsavedChanges(false);
-        setSnackbar({
-          open: true,
-          message: "Question updated successfully!",
-          type: "success",
-        });
+        showSnackbar("Question updated successfully!", { type: "success" });
       })
       .catch((err) => {
-        setSnackbar({ open: true, message: err.message, type: "error" });
+        showSnackbar(err.message, { type: "error" });
       });
   }, [editedQuestion, validateForm, API_URL]);
 
@@ -344,7 +332,7 @@ export default function QuantPage() {
   const confirmRegenerate = useCallback(async () => {
     if (!confirmDialog.questionId) return;
     setConfirmDialog({ open: false, type: "", questionId: null });
-    setSnackbar({ open: false, message: "", type: "success" });
+    showSnackbar("Question regenerated successfully", { type: "success" });
     try {
       const res = await fetch(
         `${API_URL}/quantVault/QuantVaultQuestions/${confirmDialog.questionId}/regenerate`,
@@ -361,13 +349,9 @@ export default function QuantPage() {
       if (!refreshed.ok) throw new Error("Failed to reload questions");
       const data = await refreshed.json();
       setQuestions(data);
-      setSnackbar({
-        open: true,
-        message: "Question regenerated and added to the end",
-        type: "success",
-      });
+      showSnackbar("Question regenerated and added to the end", { type: "success" });
     } catch (err) {
-      setSnackbar({ open: true, message: err.message, type: "error" });
+      showSnackbar(err.message, { type: "error" });
     }
   }, [API_URL, confirmDialog.questionId]);
 
@@ -412,12 +396,6 @@ export default function QuantPage() {
 
       {deleteLoading && <Loading overlay text="Deleting question..." />}
       {loading && <Loading overlay text="Loading questions..." />}
-      <Snackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        type={snackbar.type}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      />
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white shadow-sm">
