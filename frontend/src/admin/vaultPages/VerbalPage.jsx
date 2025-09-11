@@ -12,9 +12,8 @@ import {
   X,
   Plus,
   ChevronRight,
-
 } from "lucide-react";
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from "lucide-react";
 
 import Loading from "../../components/Loading";
 import Snackbar from "../../components/Snackbar";
@@ -55,7 +54,10 @@ export default function VerbalPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState("");
-  const [confirmDialog, setConfirmDialog] = useState({ open: false, questionId: null });
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    questionId: null,
+  });
   const API_URL = import.meta.env.VITE_API_URL;
   const showSnackbar = useSnackbar();
 
@@ -349,11 +351,15 @@ export default function VerbalPage() {
         throw new Error(errData.error || "Failed to regenerate question");
       }
       // Reload questions after regeneration
-      const refreshed = await fetch(`${API_URL}/verbalVault/VerbalVaultQuestions`);
+      const refreshed = await fetch(
+        `${API_URL}/verbalVault/VerbalVaultQuestions`
+      );
       if (!refreshed.ok) throw new Error("Failed to reload questions");
       const data = await refreshed.json();
       setQuestions(data);
-      showSnackbar("Question regenerated and added to the end", { type: "success" });
+      showSnackbar("Question regenerated and added to the end", {
+        type: "success",
+      });
     } catch (err) {
       showSnackbar(err.message, { type: "error" });
     }
@@ -361,19 +367,19 @@ export default function VerbalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            {/* Dialogs */}
-            <Dialog
-              open={confirmDialog.open && confirmDialog.type === "delete"}
-              title="Delete Question"
-              message="Are you sure you want to delete this question? This action cannot be undone."
-              onConfirm={confirmDelete}
-              onCancel={() =>
-                setConfirmDialog({ open: false, type: "", questionId: null })
-              }
-              confirmText="Delete"
-              loading={deleteLoading}
-            />
-<Dialog
+      {/* Dialogs */}
+      <Dialog
+        open={confirmDialog.open && confirmDialog.type === "delete"}
+        title="Delete Question"
+        message="Are you sure you want to delete this question? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() =>
+          setConfirmDialog({ open: false, type: "", questionId: null })
+        }
+        confirmText="Delete"
+        loading={deleteLoading}
+      />
+      <Dialog
         open={confirmDialog.open && confirmDialog.type === "regenerate"}
         title="Regenerate Question"
         message="Are you sure you want to regenerate this question? It will be duplicated and added to the end of the list."
@@ -417,9 +423,7 @@ export default function VerbalPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {loading && (
-          <Loading overlay text="Loading questions..." />
-        )}
+        {loading && <Loading overlay text="Loading questions..." />}
         {error && (
           <Snackbar
             open={true}
@@ -430,9 +434,7 @@ export default function VerbalPage() {
         )}
         {!loading && !error && (
           <>
-            {deleteLoading && (
-              <Loading overlay text="Deleting question..." />
-            )}
+            {deleteLoading && <Loading overlay text="Deleting question..." />}
             {deleteSuccess && (
               <Snackbar
                 open={true}
@@ -618,8 +620,11 @@ export default function VerbalPage() {
                     className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] px-4 py-3 border-b border-purple-200 hover:bg-purple-50 transition-colors text-sm"
                   >
                     <div>{q.set_id || "N/A"}</div>
-                    <div>{q.questionId}</div>
-                  
+                    <div className="flex items-center py-2 md:py-0">
+                      <FileText className="w-4 h-4 text-purple-600 mr-2" />
+                      <span className="font-medium" title={q.questionId}>{q.questionId}</span>
+                    </div>
+
                     <div className="truncate cursor-default" title={q.type}>
                       {q.type?.replace("_", " ").toUpperCase() || "N/A"}
                     </div>
@@ -665,7 +670,7 @@ export default function VerbalPage() {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      
+
                       <button
                         onClick={() => handleDelete(q.questionId)}
                         className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors cursor-pointer"
@@ -676,8 +681,8 @@ export default function VerbalPage() {
                       </button>
                     </div>
                   </div>
-                )))
-                : (
+                ))
+              ) : (
                 <div className="px-4 py-8 text-center text-gray-500">
                   <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <p className="mb-2">No questions match your filters</p>
@@ -1151,7 +1156,8 @@ export default function VerbalPage() {
                 <div className="bg-yellow-50 rounded-lg border border-yellow-200 mt-4">
                   <div className="p-3">
                     <h4 className="font-medium text-yellow-800 mb-2">
-                      Explanation <span className="text-gray-400">(optional)</span>
+                      Explanation{" "}
+                      <span className="text-gray-400">(optional)</span>
                     </h4>
                     {isEditing ? (
                       <textarea

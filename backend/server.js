@@ -7,8 +7,11 @@ const cors = require('cors');
 const verbalVaultRoutes = require('./routes/verbalVaultRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
 const quantVaultRoutes = require('./routes/quantVaultRoutes');
+
 // Admin auth routes
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
+// Data Sufficiency routes
+const dataSufficiencyRoutes = require('./routes/dataSufficiencyRoutes');
 
 
 const app = express();
@@ -31,9 +34,11 @@ app.get('/', (req, res) => {
 });
 
 // Use routers
+
 app.use('/api/verbalVault', verbalVaultRoutes);
 app.use('/api/quantVault', quantVaultRoutes);
 app.use('/api/assessments', assessmentRoutes);
+app.use('/api/dataSufficiency', dataSufficiencyRoutes);
 
 
 // admin auth routes

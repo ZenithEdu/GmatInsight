@@ -44,7 +44,7 @@ const DataInsightsUploadPage = () => {
       color: 'from-orange-500 to-yellow-500'
     },
     {
-      id: 'data-sufficiency',
+      id: 'data-sufficiency-upload-page',
       title: 'Data Sufficiency',
       icon: <Database className="w-5 h-5" />,
       description: 'Decide whether the provided data is sufficient to answer the question.',
@@ -61,8 +61,8 @@ const DataInsightsUploadPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white shadow-sm">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <button
             onClick={() => navigate(-1)}
             className="p-2 text-gray-600 hover:text-emerald-600 transition-colors rounded-lg hover:bg-emerald-50"

@@ -1,0 +1,3 @@
+admin header -> admin's information. logout.
+verbal ke naam ko structure ke upload page karo.
+quant verbal me download excel ka button gayab ho jab file preview ke liye ready hai

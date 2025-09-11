@@ -531,7 +531,7 @@ export default function QuantPage() {
         {/* Questions Table */}
         <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
           {/* Table Header */}
-          <div className="hidden md:grid grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] bg-blue-50/50 px-4 py-3 border-b border-blue-400 text-sm font-semibold text-blue-600">
+          <div className="hidden md:grid grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] bg-blue-50/50 px-4 py-3 border-b border-blue-100 text-sm font-semibold text-blue-600">
             <div
               className="cursor-pointer"
               onClick={() => handleSort("set_id")}
@@ -577,8 +577,10 @@ export default function QuantPage() {
                 className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] px-4 py-3 border-b border-blue-100 hover:bg-blue-50 transition-colors text-sm"
               >
                 <div>{q.set_id || "N/A"}</div>
-                <div>{q.questionId}</div>
-                <div className="truncate cursor-default" title={q.type}>
+                    <div className="flex items-center py-2 md:py-0">
+                      <FileText className="w-4 h-4 text-blue-600 mr-2" />
+                      <span className="font-medium" title={q.questionId}>{q.questionId}</span>
+                    </div>                <div className="truncate cursor-default" title={q.type}>
                   {q.type?.replace("_", " ").toUpperCase() || "N/A"}
                 </div>
                 <div className="truncate py-2 md:py-0" title={q.topic}>

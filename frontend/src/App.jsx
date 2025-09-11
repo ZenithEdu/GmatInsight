@@ -25,18 +25,18 @@ import VerbalPage from "./admin/vaultPages/VerbalPage.jsx";
 import DataInsightPage from "./admin/vaultPages/DataInsightPage.jsx";
 import DataInsightsUploadPage from "./admin/uploadInterface/DataInsightsUploadPage.jsx";
 import QuantitativeUploadPage from "./admin/uploadInterface/quant/QuantitativeUploadPage.jsx";
+import DataSufficiencyUploadPage from "./admin/dataInsightStructures/DataSufficiencyUploadPage.jsx";
+import VerbalReasoningStructure from "./admin/verbalStructure/VerbalReasoningStructure.jsx";
 
 // Admin: Data Insight Question Structures
 import MultiSourceStructure from "./admin/dataInsightStructures/MultiSourceStructure.jsx";
 import TableAnalysisStructure from "./admin/dataInsightStructures/TableAnalysisStructure.jsx";
 import GraphicsInterpretationStructure from "./admin/dataInsightStructures/GraphicsInterpretationStructure.jsx";
 import TwoPartAnalysisStructure from "./admin/dataInsightStructures/TwoPartAnalysisStructure.jsx";
-import DataSufficiencyStructure from "./admin/dataInsightStructures/DataSufficiencyStructure.jsx";
 
 // Admin: Other sections
 import Admin from "./admin/Admin.jsx";
 import QuestionVault from "./admin/vault/QuestionVault.jsx";
-import VerbalReasoningStructure from "./admin/verbalStructure/VerbalReasoningStructure.jsx";
 import AssessmentManager from "./admin/assessments/AssessmentManager.jsx";
 import AdminProtectedRoute from "./admin/components/AdminProtectedRoute";
 
@@ -189,10 +189,10 @@ function App() {
             />{" "}
             {/* Two-part analysis format */}
             <Route
-              path="/data-sufficiency"
+              path="/data-sufficiency-upload-page"
               element={
                 <AdminProtectedRoute>
-                  <DataSufficiencyStructure />
+                  <DataSufficiencyUploadPage />
                 </AdminProtectedRoute>
               }
             />{" "}
