@@ -320,14 +320,11 @@ export default function AdminKey({ onSuccess }) {
 
         {/* Warning Notice */}
         <div className="mt-3 p-2 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-          <div className="flex items-start gap-1.5 text-amber-800">
+          <div className="flex items-center gap-1.5 text-amber-800">
             <Shield className="w-2.5 h-2.5 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold mb-0.5 text-xs">Restricted Area</p>
               <p className="text-xs text-amber-700 leading-relaxed">
                 Protected area for authorized personnel only.
               </p>
-            </div>
           </div>
         </div>
       </div>
