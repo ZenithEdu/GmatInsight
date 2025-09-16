@@ -48,7 +48,10 @@ export default function DataInsightPage() {
     createdAt: "",
     contentDomain: "",
   });
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [sortConfig, setSortConfig] = useState({
+    key: "createdAt",
+    direction: "asc",
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,29 +62,49 @@ export default function DataInsightPage() {
   const [showStatements, setShowStatements] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState({ open: false, type: "", questionId: null });
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    type: "",
+    questionId: null,
+  });
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const showSnackbar = useSnackbar();
 
-  // Fetch questions (Data Sufficiency only for now)
-  useEffect(() => {
+  const fetchQuestions = useCallback(async () => {
     setLoading(true);
-    fetch(`${API_URL}/dataSufficiency`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch questions");
-        return res.json();
-      })
-      .then((data) => {
-        setQuestions(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setQuestions([]);
-        setLoading(false);
-        showSnackbar(`Error: ${err.message}`, { type: "error" });
-      });
+    try {
+      const [dsRes, tpaRes] = await Promise.all([
+        fetch(`${API_URL}/dataSufficiency`),
+        fetch(`${API_URL}/twoPartAnalysis`),
+      ]);
+
+      if (!dsRes.ok) throw new Error("Failed to fetch Data Sufficiency questions");
+      if (!tpaRes.ok) throw new Error("Failed to fetch Two-Part Analysis questions");
+
+      const ds = await dsRes.json();
+      const tpa = await tpaRes.json();
+
+      const dsQuestions = (ds || []).map((q) => ({
+        ...q,
+        type: "Data Sufficiency",
+      }));
+      const tpaQuestions = (tpa || []).map((q) => ({
+        ...q,
+        type: "Two-part Analysis",
+      }));
+      setQuestions([...dsQuestions, ...tpaQuestions]);
+    } catch (err) {
+      setError(err.message);
+      setQuestions([]);
+      showSnackbar(`Error: ${err.message}`, { type: "error" });
+    } finally {
+      setLoading(false);
+    }
   }, [API_URL, showSnackbar]);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
 
   const getDifficultyClass = useCallback((difficulty) => {
     switch (difficulty?.toLowerCase()) {
@@ -96,31 +119,28 @@ export default function DataInsightPage() {
     }
   }, []);
 
-const getQuestionTypeIcon = useCallback((type) => {
-  // Capitalize each word (Title Case)
-  const formattedType = type
-    ?.toLowerCase()
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  const getQuestionTypeIcon = useCallback((type) => {
+    const formattedType = type
+      ?.toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
 
-  switch (formattedType) {
-    case "Multi-source Reasoning":
-      return <List className="w-4 h-4 mr-2 text-blue-500" />;
-    case "Table Analysis":
-      return <Table className="w-4 h-4 mr-2 text-purple-500" />;
-    case "Graphics Interpretation":
-      return <BarChart2 className="w-4 h-4 mr-2 text-teal-500" />;
-    case "Two-part Analysis":
-      return <div className="w-4 h-4 mr-2 text-orange-500">2P</div>;
-    case "Data Sufficiency":
-      return <Check className="w-4 h-4 mr-2 text-violet-500" />;
-    default:
-      return <FileText className="w-4 h-4 mr-2 text-gray-500" />;
-  }
-}, []);
-
-
+    switch (formattedType) {
+      case "Multi-source Reasoning":
+        return <List className="w-4 h-4 mr-2 text-blue-500" />;
+      case "Table Analysis":
+        return <Table className="w-4 h-4 mr-2 text-purple-500" />;
+      case "Graphics Interpretation":
+        return <BarChart2 className="w-4 h-4 mr-2 text-teal-500" />;
+      case "Two-part Analysis":
+        return <div className="w-4 h-4 mr-2 text-orange-500">2P</div>;
+      case "Data Sufficiency":
+        return <Check className="w-4 h-4 mr-2 text-violet-500" />;
+      default:
+        return <FileText className="w-4 h-4 mr-2 text-gray-500" />;
+    }
+  }, []);
 
   const handlePreview = useCallback(
     (id) => {
@@ -156,26 +176,31 @@ const getQuestionTypeIcon = useCallback((type) => {
     setHasUnsavedChanges(false);
   }, [isEditing, hasUnsavedChanges]);
 
+  const getEndpoint = useCallback((type) => {
+    return type === "Data Sufficiency" ? "dataSufficiency" : "twoPartAnalysis";
+  }, []);
+
   const handleDelete = useCallback((id) => {
     setConfirmDialog({ open: true, type: "delete", questionId: id });
   }, []);
 
   const confirmDelete = useCallback(async () => {
     const id = confirmDialog.questionId;
+    const question = questions.find((q) => q.questionId === id);
+    if (!question) return;
+
+    const endpoint = getEndpoint(question.type);
     setDeleteLoading(true);
     setConfirmDialog({ open: false, type: "", questionId: null });
     try {
-      const res = await fetch(`${API_URL}/dataSufficiency/${id}`, {
+      const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || "Failed to delete question");
       }
-      const refreshed = await fetch(`${API_URL}/dataSufficiency`);
-      if (!refreshed.ok) throw new Error("Failed to reload questions");
-      const data = await refreshed.json();
-      setQuestions(data);
+      await fetchQuestions();
       showSnackbar("Question deleted successfully", { type: "success" });
       if (selectedQuestion && selectedQuestion.questionId === id) {
         closePreview();
@@ -185,7 +210,16 @@ const getQuestionTypeIcon = useCallback((type) => {
     } finally {
       setDeleteLoading(false);
     }
-  }, [confirmDialog.questionId, selectedQuestion, API_URL, closePreview, showSnackbar]);
+  }, [
+    confirmDialog.questionId,
+    questions,
+    selectedQuestion,
+    getEndpoint,
+    API_URL,
+    fetchQuestions,
+    closePreview,
+    showSnackbar,
+  ]);
 
   const handleEditChange = useCallback((key, value) => {
     setEditedQuestion((prev) => ({ ...prev, [key]: value }));
@@ -249,10 +283,13 @@ const getQuestionTypeIcon = useCallback((type) => {
     const errors = {};
     if (!editedQuestion.set_id) errors.set_id = "Set ID is required";
     if (!editedQuestion.topic) errors.topic = "Topic is required";
-    if (!editedQuestion.contextText) errors.contextText = "Context text is required";
-    if (!editedQuestion.difficulty) errors.difficulty = "Difficulty is required";
+    if (!editedQuestion.contextText)
+      errors.contextText = "Context text is required";
+    if (!editedQuestion.difficulty)
+      errors.difficulty = "Difficulty is required";
     if (!editedQuestion.level) errors.level = "Level is required";
-    if (!editedQuestion.contentDomain) errors.contentDomain = "Content domain is required";
+    if (!editedQuestion.contentDomain)
+      errors.contentDomain = "Content domain is required";
     if (!editedQuestion.statements || editedQuestion.statements.length < 2) {
       errors.statements = "At least 2 statements are required";
     } else if (editedQuestion.statements.some((stmt) => !stmt)) {
@@ -278,6 +315,7 @@ const getQuestionTypeIcon = useCallback((type) => {
       return;
     }
     try {
+      const endpoint = getEndpoint(editedQuestion.type);
       const payload = {
         set_id: editedQuestion.set_id,
         type: editedQuestion.type,
@@ -295,15 +333,20 @@ const getQuestionTypeIcon = useCallback((type) => {
           createdAt: editedQuestion.metadata?.createdAt || new Date(),
         },
       };
-      const res = await fetch(`${API_URL}/dataSufficiency/${editedQuestion.questionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `${API_URL}/${endpoint}/${editedQuestion.questionId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       if (!res.ok) throw new Error("Failed to update question");
       const updatedQuestion = await res.json();
       setQuestions((prev) =>
-        prev.map((q) => (q.questionId === updatedQuestion.questionId ? updatedQuestion : q))
+        prev.map((q) =>
+          q.questionId === updatedQuestion.questionId ? updatedQuestion : q
+        )
       );
       setSelectedQuestion(updatedQuestion);
       setIsEditing(false);
@@ -312,7 +355,7 @@ const getQuestionTypeIcon = useCallback((type) => {
     } catch (err) {
       showSnackbar(`Error: ${err.message}`, { type: "error" });
     }
-  }, [editedQuestion, validateForm, API_URL, showSnackbar]);
+  }, [editedQuestion, validateForm, getEndpoint, API_URL, showSnackbar]);
 
   const handleRegenerate = useCallback((id) => {
     setConfirmDialog({ open: true, type: "regenerate", questionId: id });
@@ -320,24 +363,27 @@ const getQuestionTypeIcon = useCallback((type) => {
 
   const confirmRegenerate = useCallback(async () => {
     const id = confirmDialog.questionId;
+    const question = questions.find((q) => q.questionId === id);
+    if (!question) return;
+
+    const endpoint = getEndpoint(question.type);
     setConfirmDialog({ open: false, type: "", questionId: null });
     try {
-      const res = await fetch(`${API_URL}/dataSufficiency/${id}/regenerate`, {
+      const res = await fetch(`${API_URL}/${endpoint}/${id}/regenerate`, {
         method: "POST",
       });
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || "Failed to regenerate question");
       }
-      const refreshed = await fetch(`${API_URL}/dataSufficiency`);
-      if (!refreshed.ok) throw new Error("Failed to reload questions");
-      const data = await refreshed.json();
-      setQuestions(data);
-      showSnackbar("Question regenerated and added to the end", { type: "success" });
+      await fetchQuestions();
+      showSnackbar("Question regenerated and added to the end", {
+        type: "success",
+      });
     } catch (err) {
       showSnackbar(err.message, { type: "error" });
     }
-  }, [confirmDialog.questionId, API_URL, showSnackbar]);
+  }, [confirmDialog.questionId, questions, getEndpoint, API_URL, fetchQuestions, showSnackbar]);
 
   const handleSort = useCallback((key) => {
     setSortConfig((prev) => ({
@@ -357,8 +403,13 @@ const getQuestionTypeIcon = useCallback((type) => {
             : "";
           return questionDate.includes(filterDate);
         }
-        if (key === "questionId") return String(q.questionId || "").toLowerCase().includes(value.toLowerCase());
-        return String(q[key] || "").toLowerCase().includes(value.toLowerCase());
+        if (key === "questionId")
+          return String(q.questionId || "")
+            .toLowerCase()
+            .includes(value.toLowerCase());
+        return String(q[key] || "")
+          .toLowerCase()
+          .includes(value.toLowerCase());
       })
     );
   }, [questions, filters]);
@@ -366,19 +417,33 @@ const getQuestionTypeIcon = useCallback((type) => {
   const sortedQuestions = useMemo(() => {
     if (!sortConfig.key) return filteredQuestions;
     return [...filteredQuestions].sort((a, b) => {
-      const aVal =
-        sortConfig.key === "createdAt"
-          ? new Date(a.metadata?.createdAt || 0)
-          : a[sortConfig.key] || "";
-      const bVal =
-        sortConfig.key === "createdAt"
-          ? new Date(b.metadata?.createdAt || 0)
-          : b[sortConfig.key] || "";
+      let aVal, bVal;
+      if (sortConfig.key === "createdAt") {
+        aVal = new Date(a.metadata?.createdAt || 0);
+        bVal = new Date(b.metadata?.createdAt || 0);
+      } else if (sortConfig.key === "source") {
+        aVal = a.metadata?.source || "";
+        bVal = b.metadata?.source || "";
+      } else {
+        aVal = a[sortConfig.key] || "";
+        bVal = b[sortConfig.key] || "";
+      }
       if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
   }, [filteredQuestions, sortConfig]);
+
+  const getSerialNumber = useCallback(
+    (index) => {
+      if (sortConfig.direction === "asc") {
+        return index + 1;
+      } else {
+        return sortedQuestions.length - index;
+      }
+    },
+    [sortedQuestions.length, sortConfig.direction]
+  );
 
   const getSortIcon = useCallback(
     (key) => {
@@ -476,7 +541,9 @@ const getQuestionTypeIcon = useCallback((type) => {
         title="Delete Question"
         message="Are you sure you want to delete this question? This action cannot be undone."
         onConfirm={confirmDelete}
-        onCancel={() => setConfirmDialog({ open: false, type: "", questionId: null })}
+        onCancel={() =>
+          setConfirmDialog({ open: false, type: "", questionId: null })
+        }
         confirmText="Delete"
         loading={deleteLoading}
       />
@@ -485,7 +552,9 @@ const getQuestionTypeIcon = useCallback((type) => {
         title="Regenerate Question"
         message="Are you sure you want to regenerate this question? It will be duplicated and added to the end of the list."
         onConfirm={confirmRegenerate}
-        onCancel={() => setConfirmDialog({ open: false, type: "", questionId: null })}
+        onCancel={() =>
+          setConfirmDialog({ open: false, type: "", questionId: null })
+        }
         confirmText="Regenerate"
       />
       {/* Header */}
@@ -497,7 +566,8 @@ const getQuestionTypeIcon = useCallback((type) => {
               Data Insights Vault
             </h1>
             <p className="text-gray-500 text-sm">
-              ({filteredQuestions.length} question{filteredQuestions.length !== 1 ? "s" : ""} found)
+              ({filteredQuestions.length} question
+              {filteredQuestions.length !== 1 ? "s" : ""} found)
             </p>
           </div>
           <div className="flex gap-3">
@@ -562,7 +632,9 @@ const getQuestionTypeIcon = useCallback((type) => {
                         className="w-full pl-10 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         placeholder="Search Question ID"
                         value={filters.questionId}
-                        onChange={(e) => updateFilter("questionId", e.target.value)}
+                        onChange={(e) =>
+                          updateFilter("questionId", e.target.value)
+                        }
                         aria-label="Search by Question ID"
                       />
                     </div>
@@ -578,7 +650,10 @@ const getQuestionTypeIcon = useCallback((type) => {
                       aria-label="Filter by Question Type"
                     >
                       {questionTypeOptions.map((option) => (
-                        <option key={option} value={option === "All" ? "" : option}>
+                        <option
+                          key={option}
+                          value={option === "All" ? "" : option}
+                        >
                           {option}
                         </option>
                       ))}
@@ -614,11 +689,16 @@ const getQuestionTypeIcon = useCallback((type) => {
                     <select
                       className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       value={filters.difficulty}
-                      onChange={(e) => updateFilter("difficulty", e.target.value)}
+                      onChange={(e) =>
+                        updateFilter("difficulty", e.target.value)
+                      }
                       aria-label="Filter by Difficulty"
                     >
                       {difficultyOptions.map((option) => (
-                        <option key={option} value={option === "All" ? "" : option}>
+                        <option
+                          key={option}
+                          value={option === "All" ? "" : option}
+                        >
                           {option}
                         </option>
                       ))}
@@ -635,7 +715,10 @@ const getQuestionTypeIcon = useCallback((type) => {
                       aria-label="Filter by Level"
                     >
                       {levelOptions.map((option) => (
-                        <option key={option} value={option === "All" ? "" : option}>
+                        <option
+                          key={option}
+                          value={option === "All" ? "" : option}
+                        >
                           {option}
                         </option>
                       ))}
@@ -648,11 +731,16 @@ const getQuestionTypeIcon = useCallback((type) => {
                     <select
                       className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       value={filters.contentDomain}
-                      onChange={(e) => updateFilter("contentDomain", e.target.value)}
+                      onChange={(e) =>
+                        updateFilter("contentDomain", e.target.value)
+                      }
                       aria-label="Filter by Content Domain"
                     >
                       {contentDomainOptions.map((option) => (
-                        <option key={option} value={option === "All" ? "" : option}>
+                        <option
+                          key={option}
+                          value={option === "All" ? "" : option}
+                        >
                           {option}
                         </option>
                       ))}
@@ -666,7 +754,9 @@ const getQuestionTypeIcon = useCallback((type) => {
                       type="date"
                       className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       value={filters.createdAt}
-                      onChange={(e) => updateFilter("createdAt", e.target.value)}
+                      onChange={(e) =>
+                        updateFilter("createdAt", e.target.value)
+                      }
                       aria-label="Filter by Created Date"
                     />
                   </div>
@@ -676,67 +766,113 @@ const getQuestionTypeIcon = useCallback((type) => {
 
             {/* Questions Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="hidden md:grid grid-cols-[0.5fr_1.2fr_1.7fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr_1fr] bg-emerald-50 px-4 py-3 border-b border-emerald-200 text-sm font-semibold text-emerald-600">
-                <div className="cursor-pointer" onClick={() => handleSort("set_id")}>
+              <div className="hidden md:grid grid-cols-[0.5fr_0.7fr_1fr_1.5fr_1.5fr_1fr_0.8fr_0.8fr_1fr_1fr_1fr] bg-emerald-50 px-4 py-3 border-b border-emerald-200 text-sm font-semibold text-emerald-600">
+                <div>S.No</div>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("set_id")}
+                >
                   Set ID {getSortIcon("set_id")}
                 </div>
-                <div className="cursor-pointer" onClick={() => handleSort("questionId")}>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("questionId")}
+                >
                   Question ID {getSortIcon("questionId")}
                 </div>
-                <div className="cursor-pointer" onClick={() => handleSort("type")}>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("type")}
+                >
                   Type {getSortIcon("type")}
                 </div>
-                <div className="cursor-pointer" onClick={() => handleSort("topic")}>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("topic")}
+                >
                   Topic {getSortIcon("topic")}
                 </div>
-                <div className="cursor-pointer" onClick={() => handleSort("contentDomain")}>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("contentDomain")}
+                >
                   Content Domain {getSortIcon("contentDomain")}
                 </div>
-                <div className="cursor-pointer" onClick={() => handleSort("difficulty")}>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("difficulty")}
+                >
                   Difficulty {getSortIcon("difficulty")}
                 </div>
-                <div className="cursor-pointer" onClick={() => handleSort("level")}>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("level")}
+                >
                   Level {getSortIcon("level")}
                 </div>
-                <div className="cursor-pointer" onClick={() => handleSort("createdAt")}>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("createdAt")}
+                >
                   Created At {getSortIcon("createdAt")}
                 </div>
-                <div className="cursor-pointer" onClick={() => handleSort("source")}>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => handleSort("source")}
+                >
                   Source {getSortIcon("source")}
                 </div>
                 <div>Actions</div>
               </div>
               {sortedQuestions.length > 0 ? (
-                sortedQuestions.map((q) => (
+                sortedQuestions.map((q, index) => (
                   <div
                     key={q.questionId}
-                    className="grid grid-cols-1 md:grid-cols-[0.5fr_1.2fr_1.7fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr_1fr] px-4 py-3 border-b border-emerald-200 hover:bg-emerald-50 transition-colors text-sm"
+                    className="grid grid-cols-1 md:grid-cols-[0.5fr_0.7fr_1fr_1.5fr_1.5fr_1fr_0.8fr_0.8fr_1fr_1fr_1fr] px-4 py-3 border-b border-emerald-200 hover:bg-emerald-50 transition-colors text-sm"
                   >
+                    <div className="py-2 md:py-0 font-medium">{getSerialNumber(index)}</div>
                     <div className="py-2 md:py-0">{q.set_id || "N/A"}</div>
                     <div className="flex items-center py-2 md:py-0">
                       <FileText className="w-4 h-4 text-emerald-600 mr-2" />
-                      <span className="font-medium" title={q.questionId}>{q.questionId}</span>
+                      <span className="font-medium" title={q.questionId}>
+                        {q.questionId}
+                      </span>
                     </div>
                     <div className="flex items-center py-2 md:py-0 capitalize">
                       {getQuestionTypeIcon(q.type)}
-                      <span className="truncate" title={q.type}>{q.type}</span>
+                      <span className="truncate" title={q.type}>
+                        {q.type}
+                      </span>
                     </div>
-                    <div className="truncate py-2 md:py-0" title={q.topic}>{q.topic || "N/A"}</div>
-                    <div className="truncate py-2 md:py-0" title={q.contentDomain}>{q.contentDomain || "N/A"}</div>
+                    <div className="truncate py-2 md:py-0" title={q.topic}>
+                      {q.topic || "N/A"}
+                    </div>
+                    <div
+                      className="truncate py-2 md:py-0"
+                      title={q.contentDomain}
+                    >
+                      {q.contentDomain || "N/A"}
+                    </div>
                     <div className="py-2 md:py-0">
                       <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyClass(q.difficulty)}`}
+                        className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyClass(
+                          q.difficulty
+                        )}`}
                       >
                         {q.difficulty || "N/A"}
                       </span>
                     </div>
-                    <div className="py-2 md:py-0">{q.level?.toUpperCase() || "N/A"}</div>
+                    <div className="py-2 md:py-0">
+                      {q.level?.toUpperCase() || "N/A"}
+                    </div>
                     <div className="text-gray-500 py-2 md:py-0">
                       {q.metadata?.createdAt
-                        ? new Date(q.metadata.createdAt).toLocaleDateString()
+                        ? new Date(q.metadata.createdAt).toLocaleString()
                         : "N/A"}
                     </div>
-                    <div className="py-2 md:py-0 capitalize">{q.metadata?.source || "N/A"}</div>
+                    <div className="py-2 md:py-0 capitalize">
+                      {q.metadata?.source || "N/A"}
+                    </div>
                     <div className="flex gap-2 items-center py-2 md:py-0">
                       <button
                         onClick={() => handleRegenerate(q.questionId)}
@@ -795,7 +931,9 @@ const getQuestionTypeIcon = useCallback((type) => {
                   <h3 className="text-lg font-semibold text-gray-800">
                     {selectedQuestion.questionId} - {selectedQuestion.type}
                   </h3>
-                  <p className="text-sm text-gray-600">{selectedQuestion.topic || "N/A"}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedQuestion.topic || "N/A"}
+                  </p>
                 </div>
               </div>
               <button
@@ -812,14 +950,20 @@ const getQuestionTypeIcon = useCallback((type) => {
               {/* Metadata Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-4">
                 <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Set ID</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                    Set ID
+                  </label>
                   {isEditing ? (
                     <input
                       className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
-                        formErrors.set_id ? "border-red-500" : "focus:ring-emerald-500"
+                        formErrors.set_id
+                          ? "border-red-500"
+                          : "focus:ring-emerald-500"
                       }`}
                       value={editedQuestion.set_id || ""}
-                      onChange={(e) => handleEditChange("set_id", e.target.value)}
+                      onChange={(e) =>
+                        handleEditChange("set_id", e.target.value)
+                      }
                     />
                   ) : (
                     <span className="text-sm font-medium text-gray-800">
@@ -827,25 +971,35 @@ const getQuestionTypeIcon = useCallback((type) => {
                     </span>
                   )}
                   {formErrors.set_id && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.set_id}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {formErrors.set_id}
+                    </p>
                   )}
                 </div>
                 <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Difficulty</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                    Difficulty
+                  </label>
                   {isEditing ? (
                     <select
                       className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
-                        formErrors.difficulty ? "border-red-500" : "focus:ring-emerald-500"
+                        formErrors.difficulty
+                          ? "border-red-500"
+                          : "focus:ring-emerald-500"
                       }`}
                       value={editedQuestion.difficulty || ""}
-                      onChange={(e) => handleEditChange("difficulty", e.target.value)}
+                      onChange={(e) =>
+                        handleEditChange("difficulty", e.target.value)
+                      }
                     >
                       <option value="">Select</option>
-                      {difficultyOptions.filter((opt) => opt !== "All").map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
+                      {difficultyOptions
+                        .filter((opt) => opt !== "All")
+                        .map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
                     </select>
                   ) : (
                     <span
@@ -857,25 +1011,35 @@ const getQuestionTypeIcon = useCallback((type) => {
                     </span>
                   )}
                   {formErrors.difficulty && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.difficulty}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {formErrors.difficulty}
+                    </p>
                   )}
                 </div>
                 <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Level</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                    Level
+                  </label>
                   {isEditing ? (
                     <select
                       className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
-                        formErrors.level ? "border-red-500" : "focus:ring-emerald-500"
+                        formErrors.level
+                          ? "border-red-500"
+                          : "focus:ring-emerald-500"
                       }`}
                       value={editedQuestion.level || ""}
-                      onChange={(e) => handleEditChange("level", e.target.value)}
+                      onChange={(e) =>
+                        handleEditChange("level", e.target.value)
+                      }
                     >
                       <option value="">Select</option>
-                      {levelOptions.filter((opt) => opt !== "All").map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
+                      {levelOptions
+                        .filter((opt) => opt !== "All")
+                        .map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
                     </select>
                   ) : (
                     <span className="text-sm font-medium text-gray-800">
@@ -883,25 +1047,35 @@ const getQuestionTypeIcon = useCallback((type) => {
                     </span>
                   )}
                   {formErrors.level && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.level}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {formErrors.level}
+                    </p>
                   )}
                 </div>
                 <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Content Domain</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                    Content Domain
+                  </label>
                   {isEditing ? (
                     <select
                       className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
-                        formErrors.contentDomain ? "border-red-500" : "focus:ring-emerald-500"
+                        formErrors.contentDomain
+                          ? "border-red-500"
+                          : "focus:ring-emerald-500"
                       }`}
                       value={editedQuestion.contentDomain || ""}
-                      onChange={(e) => handleEditChange("contentDomain", e.target.value)}
+                      onChange={(e) =>
+                        handleEditChange("contentDomain", e.target.value)
+                      }
                     >
                       <option value="">Select</option>
-                      {contentDomainOptions.filter((opt) => opt !== "All").map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
+                      {contentDomainOptions
+                        .filter((opt) => opt !== "All")
+                        .map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
                     </select>
                   ) : (
                     <span className="text-sm font-medium text-gray-800">
@@ -909,18 +1083,26 @@ const getQuestionTypeIcon = useCallback((type) => {
                     </span>
                   )}
                   {formErrors.contentDomain && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.contentDomain}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {formErrors.contentDomain}
+                    </p>
                   )}
                 </div>
                 <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">Topic</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                    Topic
+                  </label>
                   {isEditing ? (
                     <input
                       className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
-                        formErrors.topic ? "border-red-500" : "focus:ring-emerald-500"
+                        formErrors.topic
+                          ? "border-red-500"
+                          : "focus:ring-emerald-500"
                       }`}
                       value={editedQuestion.topic || ""}
-                      onChange={(e) => handleEditChange("topic", e.target.value)}
+                      onChange={(e) =>
+                        handleEditChange("topic", e.target.value)
+                      }
                     />
                   ) : (
                     <span className="text-sm font-medium text-gray-800">
@@ -928,7 +1110,9 @@ const getQuestionTypeIcon = useCallback((type) => {
                     </span>
                   )}
                   {formErrors.topic && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.topic}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {formErrors.topic}
+                    </p>
                   )}
                 </div>
               </div>
@@ -940,23 +1124,32 @@ const getQuestionTypeIcon = useCallback((type) => {
                   {/* Context Text */}
                   <div className="bg-blue-50 rounded-lg border border-blue-200">
                     <div className="p-3">
-                      <h4 className="font-medium text-blue-800 mb-2">Context Text</h4>
+                      <h4 className="font-medium text-blue-800 mb-2">
+                        Context Text
+                      </h4>
                       {isEditing ? (
                         <textarea
                           className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-1 ${
-                            formErrors.contextText ? "border-red-500" : "focus:ring-blue-500"
+                            formErrors.contextText
+                              ? "border-red-500"
+                              : "focus:ring-blue-500"
                           }`}
                           value={editedQuestion.contextText || ""}
-                          onChange={(e) => handleEditChange("contextText", e.target.value)}
+                          onChange={(e) =>
+                            handleEditChange("contextText", e.target.value)
+                          }
                           rows={4}
                         />
                       ) : (
                         <p className="text-gray-800 text-sm leading-relaxed">
-                          {selectedQuestion.contextText || "No context available."}
+                          {selectedQuestion.contextText ||
+                            "No context available."}
                         </p>
                       )}
                       {formErrors.contextText && (
-                        <p className="text-red-500 text-xs mt-1">{formErrors.contextText}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {formErrors.contextText}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -984,26 +1177,36 @@ const getQuestionTypeIcon = useCallback((type) => {
                         <div className="px-3 pb-3 space-y-2">
                           {isEditing ? (
                             <>
-                              {editedQuestion.statements?.map((statement, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                  <span className="text-sm font-medium text-gray-700">
-                                    Statement {index + 1}
-                                  </span>
-                                  <input
-                                    className="flex-1 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                    value={statement || ""}
-                                    onChange={(e) => handleStatementChange(index, e.target.value)}
-                                  />
-                                  {editedQuestion.statements.length > 2 && (
-                                    <button
-                                      onClick={() => removeStatement(index)}
-                                      className="p-1 text-red-600 hover:bg-red-100 rounded"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
+                              {editedQuestion.statements?.map(
+                                (statement, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Statement {index + 1}
+                                    </span>
+                                    <input
+                                      className="flex-1 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                      value={statement || ""}
+                                      onChange={(e) =>
+                                        handleStatementChange(
+                                          index,
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                    {editedQuestion.statements.length > 2 && (
+                                      <button
+                                        onClick={() => removeStatement(index)}
+                                        className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                )
+                              )}
                               <button
                                 onClick={addStatement}
                                 className="text-sm px-2 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 transition-colors"
@@ -1013,21 +1216,27 @@ const getQuestionTypeIcon = useCallback((type) => {
                             </>
                           ) : (
                             <div className="space-y-1">
-                              {selectedQuestion.statements?.map((statement, index) => (
-                                <div
-                                  key={index}
-                                  className="bg-white p-2 rounded border border-gray-200"
-                                >
-                                  <span className="text-sm font-medium text-gray-700">
-                                    Statement {index + 1}:
-                                  </span>{" "}
-                                  <span className="text-sm text-gray-800">{statement}</span>
-                                </div>
-                              ))}
+                              {selectedQuestion.statements?.map(
+                                (statement, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-white p-2 rounded border border-gray-200"
+                                  >
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Statement {index + 1}:
+                                    </span>{" "}
+                                    <span className="text-sm text-gray-800">
+                                      {statement}
+                                    </span>
+                                  </div>
+                                )
+                              )}
                             </div>
                           )}
                           {formErrors.statements && (
-                            <p className="text-red-500 text-xs mt-2">{formErrors.statements}</p>
+                            <p className="text-red-500 text-xs mt-2">
+                              {formErrors.statements}
+                            </p>
                           )}
                         </div>
                       )}
@@ -1040,18 +1249,25 @@ const getQuestionTypeIcon = useCallback((type) => {
                   {/* Options */}
                   <div className="bg-green-50 rounded-lg border border-green-200">
                     <div className="p-3">
-                      <h4 className="font-medium text-green-800 mb-2">Answer Options</h4>
+                      <h4 className="font-medium text-green-800 mb-2">
+                        Answer Options
+                      </h4>
                       {isEditing ? (
                         <div className="space-y-2">
                           {editedQuestion.options?.map((option, index) => (
-                            <div key={index} className="flex items-center gap-2">
+                            <div
+                              key={index}
+                              className="flex items-center gap-2"
+                            >
                               <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-medium">
                                 {String.fromCharCode(65 + index)}
                               </span>
                               <input
                                 className="flex-1 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
                                 value={option || ""}
-                                onChange={(e) => handleOptionChange(index, e.target.value)}
+                                onChange={(e) =>
+                                  handleOptionChange(index, e.target.value)
+                                }
                               />
                               {editedQuestion.options.length > 4 && (
                                 <button
@@ -1078,14 +1294,16 @@ const getQuestionTypeIcon = useCallback((type) => {
                             <div
                               key={index}
                               className={`flex items-center gap-2 p-2 rounded ${
-                                selectedQuestion.answer === String.fromCharCode(65 + index)
+                                selectedQuestion.answer ===
+                                String.fromCharCode(65 + index)
                                   ? "bg-green-200 border border-green-300"
                                   : "bg-white border border-gray-200"
                               }`}
                             >
                               <span
                                 className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                                  selectedQuestion.answer === String.fromCharCode(65 + index)
+                                  selectedQuestion.answer ===
+                                  String.fromCharCode(65 + index)
                                     ? "bg-green-600 text-white"
                                     : "bg-gray-200 text-gray-600"
                                 }`}
@@ -1094,14 +1312,16 @@ const getQuestionTypeIcon = useCallback((type) => {
                               </span>
                               <span
                                 className={`text-sm ${
-                                  selectedQuestion.answer === String.fromCharCode(65 + index)
+                                  selectedQuestion.answer ===
+                                  String.fromCharCode(65 + index)
                                     ? "font-semibold text-gray-800"
                                     : "text-gray-700"
                                 }`}
                               >
                                 {option}
                               </span>
-                              {selectedQuestion.answer === String.fromCharCode(65 + index) && (
+                              {selectedQuestion.answer ===
+                                String.fromCharCode(65 + index) && (
                                 <span className="ml-auto text-xs bg-green-600 text-white px-2 py-1 rounded">
                                   Correct
                                 </span>
@@ -1111,7 +1331,9 @@ const getQuestionTypeIcon = useCallback((type) => {
                         </div>
                       )}
                       {formErrors.options && (
-                        <p className="text-red-500 text-xs mt-2">{formErrors.options}</p>
+                        <p className="text-red-500 text-xs mt-2">
+                          {formErrors.options}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -1120,23 +1342,35 @@ const getQuestionTypeIcon = useCallback((type) => {
                   {isEditing && (
                     <div className="bg-yellow-50 rounded-lg border border-yellow-200">
                       <div className="p-3">
-                        <h4 className="font-medium text-yellow-800 mb-2">Correct Answer</h4>
+                        <h4 className="font-medium text-yellow-800 mb-2">
+                          Correct Answer
+                        </h4>
                         <select
                           className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
-                            formErrors.answer ? "border-red-500" : "focus:ring-yellow-500"
+                            formErrors.answer
+                              ? "border-red-500"
+                              : "focus:ring-yellow-500"
                           }`}
                           value={editedQuestion.answer || ""}
-                          onChange={(e) => handleEditChange("answer", e.target.value)}
+                          onChange={(e) =>
+                            handleEditChange("answer", e.target.value)
+                          }
                         >
                           <option value="">Select correct answer</option>
                           {editedQuestion.options?.map((option, index) => (
-                            <option key={index} value={String.fromCharCode(65 + index)}>
-                              {String.fromCharCode(65 + index)}: {option || `Option ${index + 1}`}
+                            <option
+                              key={index}
+                              value={String.fromCharCode(65 + index)}
+                            >
+                              {String.fromCharCode(65 + index)}:{" "}
+                              {option || `Option ${index + 1}`}
                             </option>
                           ))}
                         </select>
                         {formErrors.answer && (
-                          <p className="text-red-500 text-xs mt-1">{formErrors.answer}</p>
+                          <p className="text-red-500 text-xs mt-1">
+                            {formErrors.answer}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1149,19 +1383,23 @@ const getQuestionTypeIcon = useCallback((type) => {
                 <div className="bg-yellow-50 rounded-lg border border-yellow-200 mt-4">
                   <div className="p-3">
                     <h4 className="font-medium text-yellow-800 mb-2">
-                      Explanation <span className="text-gray-400">(optional)</span>
+                      Explanation{" "}
+                      <span className="text-gray-400">(optional)</span>
                     </h4>
                     {isEditing ? (
                       <textarea
                         className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
                         value={editedQuestion.explanation || ""}
-                        onChange={(e) => handleEditChange("explanation", e.target.value)}
+                        onChange={(e) =>
+                          handleEditChange("explanation", e.target.value)
+                        }
                         rows={3}
                         placeholder="Enter explanation for the answer (optional)..."
                       />
                     ) : (
                       <p className="text-yellow-700 text-sm whitespace-pre-line">
-                        {selectedQuestion.explanation || "No explanation provided."}
+                        {selectedQuestion.explanation ||
+                          "No explanation provided."}
                       </p>
                     )}
                   </div>

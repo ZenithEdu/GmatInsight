@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, BookOpen, Clock, Trash2, X, Edit } from 'lucide-react';
-import AdminHeader from '../components/AdminHeader';
 import Loading from '../../components/Loading';
 import { useSnackbar } from '../../components/SnackbarProvider';
 const API_URL = import.meta.env.VITE_API_URL;
