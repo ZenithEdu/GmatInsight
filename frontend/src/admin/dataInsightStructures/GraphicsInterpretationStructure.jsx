@@ -1,33 +1,88 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import ContentDomainDialog from "../components/ContentDomainDialog";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import {
-  BarChart,
-  
+  PieChart,
   Plus,
   Trash2,
   Play,
-  Download,
   Image,
   X,
+  ArrowLeft,
+  Save,
+  Check,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+  Eye,
+  TrendingUp,
+  Star,
+  Hash,
 } from "lucide-react";
-import graphSample from "../../assets/graphsample.png"; // Sample graph image for demonstration
+import graphSample from "../../assets/graphsample.png";
+import GraphicsInterpretationPreview from "./preview/GraphicsInterpretationPreview";
+import { useSnackbar } from "../../components/SnackbarProvider";
+import Loading from "../../components/Loading";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const GraphicsInterpretationStructure = () => {
-  const [questionData, setQuestionData] = useState({
+  const initialQuestionData = {
+    setId: "",
+    topic: "",
+    difficulty: "",
+    level: "",
     graphUrl: "",
     graphDescription: "",
     instructionText: "",
     conclusionTemplate: "",
     dropdowns: [],
-  });
+    contentDomain: "",
+    explanation: "",
+  };
+
+  const [questionData, setQuestionData] = useState(initialQuestionData);
+  const topicsList = [
+    "Arithmetic",
+    "Algebra",
+    "Geometry",
+    "Statistics",
+    "Probability",
+    "Word Problems",
+    "Data Interpretation",
+  ];
+  const levels = ["L1", "L2", "L3", "L4", "L5"];
+  const [setId, setSetId] = useState("");
+  const [showDomainDialog, setShowDomainDialog] = useState(false);
   const [currentView, setCurrentView] = useState("input");
   const [imageUploaded, setImageUploaded] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const [showAllErrors, setShowAllErrors] = useState(false);
+  const [activeHelp, setActiveHelp] = useState(null);
+  const showSnackbar = useSnackbar();
+  const navigate = useNavigate();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const handleInputChange = (field, value) => {
+    setQuestionData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    setFormErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
   const sampleData = {
+    setId: "2",
+    topic: "Data Interpretation",
+    difficulty: "medium",
+    level: "L3",
     graphUrl: graphSample,
     graphDescription:
       "The graph shows the percent of each type of employee at a certain medical clinic for the years 1970, 1980, and 2010. The total number of employees at the clinic in 2010 was exactly twice the number of employees at the clinic in 1970.",
@@ -49,12 +104,51 @@ const GraphicsInterpretationStructure = () => {
         selectedValue: "",
       },
     ],
+    contentDomain: "Math",
+    explanation: "Explanation for the correct answers...",
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!questionData.topic) errors.topic = "Topic is required";
+    if (!questionData.difficulty) errors.difficulty = "Difficulty is required";
+    if (!questionData.level) errors.level = "Level is required";
+    if (!questionData.graphUrl) errors.graphUrl = "Graph image is required";
+    if (!questionData.graphDescription.trim())
+      errors.graphDescription = "Graph description is required";
+    if (!questionData.instructionText.trim())
+      errors.instructionText = "Instruction text is required";
+    if (!questionData.conclusionTemplate.trim())
+      errors.conclusionTemplate = "Conclusion template is required";
+    if (questionData.dropdowns.length === 0)
+      errors.dropdowns = "At least one dropdown is required";
+    questionData.dropdowns.forEach((dropdown, index) => {
+      if (dropdown.options.length === 0)
+        errors[`dropdown${index}`] =
+          "Each dropdown must have at least one option";
+      if (!dropdown.placeholder.trim())
+        errors[`dropdownPlaceholder${index}`] = "Placeholder name is required";
+    });
+    return errors;
   };
 
   const loadSampleData = () => {
     setQuestionData(sampleData);
     setImageUploaded(true);
+    setSetId(sampleData.setId || "");
+
     setError("");
+
+    setFormErrors({});
+    showSnackbar("Sample question loaded!", { type: "success" });
+  };
+
+  const clearForm = () => {
+    setQuestionData(initialQuestionData);
+    setImageUploaded(false);
+    setError("");
+    setFormErrors({});
+    showSnackbar("Form cleared", { type: "info" });
   };
 
   const addDropdown = () => {
@@ -78,26 +172,14 @@ const GraphicsInterpretationStructure = () => {
 
   const removeDropdown = (id) => {
     if (questionData.dropdowns.length > 1) {
-      setQuestionData((prev) => ({
-        ...prev,
-        dropdowns: prev.dropdowns.filter((d) => d.id !== id),
-      }));
+      if (window.confirm("Are you sure you want to remove this dropdown?")) {
+        setQuestionData((prev) => ({
+          ...prev,
+          dropdowns: prev.dropdowns.filter((d) => d.id !== id),
+        }));
+        showSnackbar("Dropdown removed", { type: "info" });
+      }
     }
-  };
-
-  const updateDropdownOptions = (id, newOptions) => {
-    setQuestionData((prev) => ({
-      ...prev,
-      dropdowns: prev.dropdowns.map((dropdown) =>
-        dropdown.id === id
-          ? {
-              ...dropdown,
-              options: newOptions.filter((opt) => opt.trim() !== ""),
-              selectedValue: "",
-            }
-          : dropdown
-      ),
-    }));
   };
 
   const addOption = (dropdownId) => {
@@ -131,6 +213,7 @@ const GraphicsInterpretationStructure = () => {
             : dropdown
         ),
       }));
+      showSnackbar("Option removed", { type: "info" });
     }
   };
 
@@ -172,12 +255,11 @@ const GraphicsInterpretationStructure = () => {
       }
       const reader = new FileReader();
       reader.onload = (event) => {
-        setQuestionData((prev) => ({
-          ...prev,
-          graphUrl: event.target.result,
-        }));
+        setQuestionData((prev) => ({ ...prev, graphUrl: event.target.result }));
         setImageUploaded(true);
         setError("");
+        setFormErrors((prev) => ({ ...prev, graphUrl: "" }));
+        showSnackbar("Image uploaded successfully", { type: "success" });
       };
       reader.onerror = () => {
         setError("Failed to read the image file.");
@@ -186,26 +268,12 @@ const GraphicsInterpretationStructure = () => {
     }
   };
 
-  const exportQuestion = () => {
-    const questionJson = JSON.stringify(questionData, null, 2);
-    const blob = new Blob([questionJson], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "gmat_graph_question.json";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const renderConclusionWithDropdowns = (
     template,
     dropdowns,
     isPreview = false
   ) => {
     if (!template) return template;
-
     if (!isPreview) {
       let result = template;
       dropdowns.forEach((dropdown) => {
@@ -214,25 +282,21 @@ const GraphicsInterpretationStructure = () => {
       });
       return result;
     }
-
     const parts = [];
     let remainingText = template;
-
     dropdowns.forEach((dropdown) => {
       const placeholder = `{${dropdown.placeholder}}`;
       const placeholderIndex = remainingText.indexOf(placeholder);
-
       if (placeholderIndex !== -1) {
         if (placeholderIndex > 0) {
           parts.push(remainingText.substring(0, placeholderIndex));
         }
-
         parts.push(
           <select
             key={`dropdown-${dropdown.id}`}
             value={dropdown.selectedValue}
             onChange={(e) => setDropdownAnswer(dropdown.id, e.target.value)}
-            className="mx-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-300 bg-white"
+            className="mx-1 px-2 py-1 border rounded text-sm bg-white shadow-sm"
             aria-label={`Select option for ${dropdown.placeholder}`}
           >
             <option value="">Select...</option>
@@ -243,21 +307,13 @@ const GraphicsInterpretationStructure = () => {
             ))}
           </select>
         );
-
         remainingText = remainingText.substring(
           placeholderIndex + placeholder.length
         );
       }
     });
-
-    if (remainingText) {
-      parts.push(remainingText);
-    }
-
-    if (parts.length === 0) {
-      return template;
-    }
-
+    if (remainingText) parts.push(remainingText);
+    if (parts.length === 0) return template;
     return (
       <span>
         {parts.map((part, index) =>
@@ -271,257 +327,570 @@ const GraphicsInterpretationStructure = () => {
     );
   };
 
+  const handleSaveQuestion = () => {
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      setShowAllErrors(true);
+      showSnackbar("Please fix all errors before saving", { type: "error" });
+      return;
+    }
+    if (!questionData.contentDomain) {
+      setShowDomainDialog(true);
+      return;
+    }
+    saveToBackend(questionData.contentDomain);
+  };
+
+  const handleDomainConfirm = (domain) => {
+    setShowDomainDialog(false);
+    setQuestionData((prev) => ({ ...prev, contentDomain: domain }));
+    saveToBackend(domain);
+  };
+
+  const saveToBackend = useCallback(async (domain) => {
+    setLoading(true);
+    try {
+      const payload = {
+        set_id: setId || null,
+        topic: questionData.topic,
+        difficulty: questionData.difficulty,
+        level: questionData.level,
+        graphUrl: questionData.graphUrl,
+        graphDescription: questionData.graphDescription,
+        instructionText: questionData.instructionText,
+        conclusionTemplate: questionData.conclusionTemplate,
+        dropdowns: questionData.dropdowns,
+        contentDomain: domain,
+        explanation: questionData.explanation,
+        metadata: {
+          source: "manual",
+          createdAt: new Date().toISOString(),
+        },
+      };
+      await axios.post(`${API_URL}/graphicsInterpretation/upload`, payload);
+      setLoading(false);
+      showSnackbar("Question saved successfully!", { type: "success" });
+      clearForm();
+    } catch (err) {
+      showSnackbar("Error saving question: " + err.message, { type: "error" });
+      setLoading(false);
+    }
+  }, [questionData, setId, showSnackbar, clearForm]);
+
   if (currentView === "preview") {
     return (
-      <div className="max-w-6xl mx-auto p-6 bg-white">
-        <div className="space-y-6">
-          {questionData.graphUrl && (
-            <div className="flex justify-center">
-              <img
-                src={questionData.graphUrl}
-                alt="Question Graph"
-                className="max-w-2xl max-h-96 h-auto border border-gray-300 rounded shadow-sm"
-              />
-            </div>
-          )}
-
-          {questionData.graphDescription && (
-            <p className="text-sm text-gray-700 leading-relaxed">
-              {questionData.graphDescription}
-            </p>
-          )}
-
-          {questionData.instructionText && (
-            <p className="text-sm text-gray-700 leading-relaxed">
-              {questionData.instructionText}
-            </p>
-          )}
-
-          {questionData.conclusionTemplate && (
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm font-medium text-gray-800">
-                {renderConclusionWithDropdowns(
-                  questionData.conclusionTemplate,
-                  questionData.dropdowns,
-                  true
-                )}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => {
-              setCurrentView("input");
-              setQuestionData((prev) => ({
-                ...prev,
-                dropdowns: prev.dropdowns.map((d) => ({
-                  ...d,
-                  selectedValue: "",
-                })),
-              }));
-            }}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded"
-            aria-label="Back to editor"
-          >
-            Back to Editor
-          </button>
-        </div>
-      </div>
+      <GraphicsInterpretationPreview
+        questionData={questionData}
+        setCurrentView={setCurrentView}
+        setQuestionData={setQuestionData}
+        renderConclusionWithDropdowns={renderConclusionWithDropdowns}
+      />
     );
   }
 
+  const validationErrors = Object.values(formErrors);
+  const hasErrors = validationErrors.length > 0;
+
   return (
-    <>
-      <div className="sticky top-0 z-10 bg-green-50 border-b border-green-200 p-4 flex justify-between items-center shadow-sm">
-        <div>
-          <h3 className="font-semibold text-green-800">
-            GMAT Graph Question Generator
-          </h3>
-          <p className="text-green-700 text-sm">
-            Create GMAT questions with graphs and dropdown answer choices.
-          </p>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={loadSampleData}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
-            aria-label="Load sample question"
-          >
-            Load Sample Question
-          </button>
-          <button
-            onClick={exportQuestion}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm flex items-center"
-            aria-label="Export question"
-          >
-            <Download className="w-4 h-4 mr-1" />
-            Export Question
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50">
+      <ContentDomainDialog
+        isOpen={showDomainDialog}
+        onClose={() => setShowDomainDialog(false)}
+        onConfirm={handleDomainConfirm}
+      />
+      {loading && <Loading overlay text="Saving question..." />}
 
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
-        {error && (
-          <div className="bg-red-50 p-4 rounded-lg text-red-700 text-sm">
-            {error}
+      <header className="sticky top-0 z-50 bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 text-gray-600 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors"
+              title="Go back"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-2xl font-bold text-emerald-800 flex items-center">
+              <PieChart className="w-6 h-6 text-emerald-600 mr-2" />
+              Graph Interpretation Generator
+            </h1>
           </div>
-        )}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={loadSampleData}
+              className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-xl hover:bg-emerald-200 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Load sample question"
+            >
+              <Play className="w-4 h-4" />
+              Sample
+            </button>
+            <button
+              onClick={handleSaveQuestion}
+              className="bg-emerald-600 text-white px-5 py-2 rounded-xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Save question"
+            >
+              <Save className="w-4 h-4" />
+              <span>Save</span>
+            </button>
+            <button
+              onClick={clearForm}
+              className="bg-gray-200 text-gray-700 px-5 py-2 rounded-xl hover:bg-gray-300 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Clear all fields"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear
+            </button>
+          </div>
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2 flex items-center">
-                <BarChart className="w-5 h-5 mr-2" />
-                Graph Configuration
-              </h3>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Upload Graph Image
-                </label>
-                {imageUploaded && (
-                  <span className="text-green-600 text-sm flex items-center">
-                    ✓ Image uploaded
-                  </span>
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 overflow-hidden">
+          {hasErrors && (
+            <div className="mb-6 p-5 bg-red-50 rounded-2xl shadow-inner border border-red-100 transition-all duration-200">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-semibold text-red-800 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Validation Errors ({validationErrors.length})
+                </h3>
+                {validationErrors.length > 5 && (
+                  <button
+                    onClick={() => setShowAllErrors(!showAllErrors)}
+                    className="text-sm text-red-600 hover:text-red-800 flex items-center gap-1 transition-colors"
+                    aria-label={
+                      showAllErrors ? "Show fewer errors" : "Show all errors"
+                    }
+                  >
+                    {showAllErrors ? "Show less" : "Show all"}
+                    {showAllErrors ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
                 )}
               </div>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-                <label className="cursor-pointer">
-                  <Image className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-600">
-                    Click to upload graph image (PNG, JPG, GIF)
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/gif"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    aria-label="Upload graph image"
-                  />
-                </label>
+              <div className="max-h-60 overflow-y-auto">
+                <ul className="text-sm text-red-700 space-y-1 pl-2">
+                  {(showAllErrors
+                    ? validationErrors
+                    : validationErrors.slice(0, 5)
+                  ).map((error, index) => (
+                    <li
+                      key={index}
+                      className="flex items-start gap-2 py-1 border-b border-red-100 last:border-b-0"
+                    >
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>{error}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              {questionData.graphUrl && (
-                <div className="mt-4">
-                  <img
-                    src={questionData.graphUrl}
-                    alt="Uploaded graph"
-                    className="max-w-md max-h-64 h-auto border border-gray-300 rounded"
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Hash className="w-4 h-4" />
+                    Set ID
+                  </label>
+                  <input
+                    type="number"
+                    value={questionData.setId}
+                    onChange={(e) =>
+                      setQuestionData((prev) => ({
+                        ...prev,
+                        setId: e.target.value.replace(/\D/g, ""),
+                      }))
+                    }
+                    placeholder="Enter numeric Set ID (optional)"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
                   />
                 </div>
-              )}
-            </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Topic <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={questionData.topic}
+                    onChange={(e) => handleInputChange("topic", e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
+                    required
+                  >
+                    <option value="">Select topic</option>
+                    {topicsList.map((topic, index) => (
+                      <option key={index} value={topic}>
+                        {topic}
+                      </option>
+                    ))}
+                  </select>
+                  {formErrors.topic && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {formErrors.topic}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Graph Description
-              </label>
-              <textarea
-                value={questionData.graphDescription}
-                onChange={(e) =>
-                  setQuestionData((prev) => ({
-                    ...prev,
-                    graphDescription: e.target.value,
-                  }))
-                }
-                rows={4}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300"
-                placeholder="Describe what the graph shows (e.g., 'The graph shows the percent of each type of employee...')"
-                aria-label="Graph description"
-              />
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Star className="w-4 h-4" />
+                    Difficulty <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={questionData.difficulty}
+                    onChange={(e) =>
+                      handleInputChange("difficulty", e.target.value)
+                    }
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
+                    required
+                  >
+                    <option value="">Select difficulty</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                  {formErrors.difficulty && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {formErrors.difficulty}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Level <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {levels.map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => handleInputChange("level", level)}
+                        className={`py-2 rounded-lg text-sm font-medium transition-all ${
+                          questionData.level === level
+                            ? "bg-emerald-600 text-white shadow-md"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                  {formErrors.level && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {formErrors.level}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Instruction Text
-              </label>
-              <textarea
-                value={questionData.instructionText}
-                onChange={(e) =>
-                  setQuestionData((prev) => ({
-                    ...prev,
-                    instructionText: e.target.value,
-                  }))
-                }
-                rows={3}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300"
-                placeholder="Instructions for the student (e.g., 'Based on the information provided, select an option...')"
-                aria-label="Instruction text"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-purple-900 mb-2">
-                Conclusion Template & Dropdowns
-              </h3>
-              <p className="text-purple-700 text-sm">
-                Create the conclusion sentence with dropdown placeholders
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Conclusion Template
-              </label>
-              <textarea
-                value={questionData.conclusionTemplate}
-                onChange={(e) =>
-                  setQuestionData((prev) => ({
-                    ...prev,
-                    conclusionTemplate: e.target.value,
-                  }))
-                }
-                rows={3}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-300"
-                placeholder="Write your conclusion with {dropdown1}, {dropdown2}, etc. placeholders"
-                aria-label="Conclusion template"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Use placeholders like {"{dropdown1}"}, {"{dropdown2}"} where you
-                want dropdowns to appear
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-800">Configure Dropdowns</h4>
-              {questionData.dropdowns.map((dropdown) => (
-                <div
-                  key={dropdown.id}
-                  className="border border-gray-300 rounded-lg p-3 hover:border-purple-300 transition-colors"
-                >
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-1 space-y-2">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Placeholder Name
-                        </label>
-                        <input
-                          type="text"
-                          value={dropdown.placeholder}
-                          onChange={(e) =>
-                            setQuestionData((prev) => ({
-                              ...prev,
-                              dropdowns: prev.dropdowns.map((d) =>
-                                d.id === dropdown.id
-                                  ? { ...d, placeholder: e.target.value }
-                                  : d
-                              ),
-                            }))
-                          }
-                          className="w-full p-2 border border-gray-200 rounded text-sm focus:border-purple-300 focus:ring-1 focus:ring-purple-200"
-                          placeholder={`dropdown${dropdown.id}`}
-                          aria-label={`Placeholder name for dropdown ${dropdown.id}`}
-                        />
+              <div className="bg-emerald-50 p-4 rounded-xl">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-semibold text-emerald-800">
+                    Upload Graph Image <span className="text-red-500">*</span>
+                  </label>
+                  {imageUploaded && (
+                    <span className="text-emerald-600 text-sm flex items-center">
+                      <Check className="w-4 h-4 mr-1" />
+                      Image uploaded
+                    </span>
+                  )}
+                </div>
+                {!questionData.graphUrl && (
+                  <div className="border-2 border-dashed border-emerald-300 rounded-xl p-6 text-center hover:border-emerald-500 transition-colors bg-white">
+                    <label className="cursor-pointer flex flex-col items-center">
+                      <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
+                        <Image className="w-6 h-6 text-emerald-500" />
                       </div>
+                      <span className="text-sm text-emerald-600 font-medium mb-1">
+                        Click to upload graph image
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        PNG, JPG, GIF (max 5MB)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/gif"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        aria-label="Upload graph image"
+                      />
+                    </label>
+                  </div>
+                )}
+                {formErrors.graphUrl && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {formErrors.graphUrl}
+                  </p>
+                )}
+                {error && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {error}
+                  </p>
+                )}
+                {questionData.graphUrl && (
+                  <div className="mt-4 relative group">
+                    <img
+                      src={questionData.graphUrl}
+                      alt="Uploaded graph"
+                      className="w-full h-auto border border-gray-300 rounded-xl shadow-sm"
+                    />
+                    <button
+                      onClick={() =>
+                        setQuestionData((prev) => ({ ...prev, graphUrl: "" }))
+                      }
+                      className="absolute top-2 right-2 text-red-500 hover:bg-red-100 p-2 rounded-full"
+                      aria-label="Remove image"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <label className="block text-sm font-semibold text-emerald-800">
+                      Graph Description <span className="text-red-500">*</span>
+                    </label>
+                    <button
+                      onMouseEnter={() => setActiveHelp("graphDescription")}
+                      onMouseLeave={() => setActiveHelp(null)}
+                      className="text-emerald-500"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                    </button>
+                    {activeHelp === "graphDescription" && (
+                      <div className="absolute mt-8 p-3 bg-gray-800 text-white text-xs rounded-lg z-10 shadow-lg">
+                        Describe what the graph shows in detail. Include
+                        information about axes, data trends, and any important
+                        notes.
+                      </div>
+                    )}
+                  </div>
+                  <textarea
+                    value={questionData.graphDescription}
+                    onChange={(e) =>
+                      setQuestionData((prev) => ({
+                        ...prev,
+                        graphDescription: e.target.value,
+                      }))
+                    }
+                    rows={4}
+                    className={`w-full p-4 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm hover:border-blue-400 transition-all duration-200 ${
+                      formErrors.graphDescription
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Describe what the graph shows (e.g., 'The graph shows the percent of each type of employee...')"
+                    aria-label="Graph description"
+                  />
+                  {formErrors.graphDescription && (
+                    <p className="text-red-500 text-sm mt-2 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {formErrors.graphDescription}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="block text-sm font-semibold text-blue-800">
+                    Instruction Text <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    onMouseEnter={() => setActiveHelp("instructionText")}
+                    onMouseLeave={() => setActiveHelp(null)}
+                    className="text-blue-500"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                  </button>
+                  {activeHelp === "instructionText" && (
+                    <div className="absolute mt-8 p-3 bg-gray-800 text-white text-xs rounded-lg z-10 shadow-lg">
+                      Provide clear instructions for the student on what they
+                      need to do with the dropdowns.
+                    </div>
+                  )}
+                </div>
+                <textarea
+                  value={questionData.instructionText}
+                  onChange={(e) =>
+                    setQuestionData((prev) => ({
+                      ...prev,
+                      instructionText: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className={`w-full p-4 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm hover:border-blue-400 transition-all duration-200 ${
+                    formErrors.instructionText
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
+                  placeholder="Instructions for the student (e.g., 'Based on the information provided, select an option...')"
+                  aria-label="Instruction text"
+                />
+                {formErrors.instructionText && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {formErrors.instructionText}
+                  </p>
+                )}
+              </div>
+              <div className="bg-purple-50 p-5 rounded-xl border border-purple-100 transition-all duration-200">
+                  <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                    <HelpCircle className="w-5 h-5" />
+                    Explanation
+                  </h3>
+                  <textarea
+                    value={questionData.explanation}
+                    onChange={(e) => handleInputChange("explanation", e.target.value)}
+                    rows={4}
+                    className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm hover:border-purple-400 transition-all duration-200"
+                    placeholder="Enter explanation..."
+                    aria-label="Question explanation"
+                  />
+                </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-purple-50 p-5 rounded-xl relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <label className="block text-sm font-semibold text-purple-800">
+                    Conclusion Template <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    onMouseEnter={() => setActiveHelp("conclusionTemplate")}
+                    onMouseLeave={() => setActiveHelp(null)}
+                    className="text-purple-500 hover:text-purple-700 transition-colors"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                  </button>
+                  {activeHelp === "conclusionTemplate" && (
+                    <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-gray-800 text-white text-xs rounded-lg z-10 shadow-lg">
+                      Use placeholders like <code>{`{dropdown1}`}</code>,{" "}
+                      <code>{`{dropdown2}`}</code> where you want dropdowns to
+                      appear.
+                    </div>
+                  )}
+                </div>
+
+                <textarea
+                  value={questionData.conclusionTemplate}
+                  onChange={(e) =>
+                    setQuestionData((prev) => ({
+                      ...prev,
+                      conclusionTemplate: e.target.value,
+                    }))
+                  }
+                  rows={4}
+                  className={`w-full p-4 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm resize-y min-h-[100px] hover:border-purple-400 transition-all duration-200 ${
+                    formErrors.conclusionTemplate
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
+                  placeholder="Write your conclusion with {dropdown1}, {dropdown2}, etc."
+                />
+
+                {formErrors.conclusionTemplate && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {formErrors.conclusionTemplate}
+                  </p>
+                )}
+
+                {questionData.conclusionTemplate && (
+                  <div className="mt-2 bg-gray-50 p-5 rounded-xl border border-gray-200">
+                    <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
+                      Template Preview
+                    </h4>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {renderConclusionWithDropdowns(
+                        questionData.conclusionTemplate,
+                        questionData.dropdowns,
+                        true
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-600 mt-2 flex items-center">
+                  <span className="mr-1">💡</span>
+                  Use placeholders like <code>{`{dropdown1}`}</code>,{" "}
+                  <code>{`{dropdown2}`}</code> for dropdown placement.
+                </p>
+              </div>
+
+              <div className="bg-purple-50 p-5 rounded-xl space-y-4 relative">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-purple-800">
+                      Configure Dropdowns
+                    </h4>
+                    <button
+                      onMouseEnter={() => setActiveHelp("dropdowns")}
+                      onMouseLeave={() => setActiveHelp(null)}
+                      className="text-purple-500 hover:text-purple-700"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                    </button>
+                    {activeHelp === "dropdowns" && (
+                      <div className="absolute top-full left-0 mt-2 w-72 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-lg">
+                        Add dropdown menus with options. Set the correct answer
+                        for each.
+                      </div>
+                    )}
+                  </div>
+                  {formErrors.dropdowns && (
+                    <span className="text-red-500 text-sm flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {formErrors.dropdowns}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {questionData.dropdowns.map((dropdown, idx) => (
+                    <div
+                      key={dropdown.id}
+                      className="border border-purple-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex justify-between items-center mb-3">
+                        <p className="text-sm font-semibold text-purple-700">
+                          Placeholder: <code>{`{dropdown${idx + 1}}`}</code>
+                        </p>
+                        <button
+                          onClick={() => removeDropdown(dropdown.id)}
+                          disabled={questionData.dropdowns.length <= 1}
+                          className={`p-2 rounded-lg ${
+                            questionData.dropdowns.length <= 1
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "text-red-500 hover:bg-red-50"
+                          }`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Options
-                        </label>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="block text-xs font-semibold text-purple-700">
+                            Options
+                          </label>
+                          <span className="text-xs text-gray-500">
+                            {dropdown.options.length}/10
+                          </span>
+                        </div>
+
                         {dropdown.options.map((option, index) => (
                           <div
                             key={index}
@@ -533,49 +902,39 @@ const GraphicsInterpretationStructure = () => {
                               onChange={(e) =>
                                 updateOption(dropdown.id, index, e.target.value)
                               }
-                              className="flex-1 p-2 border border-gray-200 rounded text-sm focus:border-purple-300 focus:ring-1 focus:ring-purple-200"
+                              className="flex-1 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
                               placeholder={`Option ${index + 1}`}
-                              aria-label={`Option ${index + 1} for dropdown ${
-                                dropdown.id
-                              }`}
                             />
                             <button
                               onClick={() => removeOption(dropdown.id, index)}
                               disabled={dropdown.options.length <= 1}
-                              className={`p-1 ${
+                              className={`p-2 rounded-lg ${
                                 dropdown.options.length <= 1
                                   ? "text-gray-400 cursor-not-allowed"
-                                  : "text-red-500 hover:text-red-700"
+                                  : "text-red-500 hover:bg-red-50"
                               }`}
-                              aria-label={`Remove option ${
-                                index + 1
-                              } from dropdown ${dropdown.id}`}
                             >
                               <X className="w-4 h-4" />
                             </button>
                           </div>
                         ))}
+
                         <button
                           onClick={() => addOption(dropdown.id)}
                           disabled={dropdown.options.length >= 10}
-                          className={`w-full text-blue-600 hover:text-blue-700 text-sm flex items-center justify-center py-2 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-400 transition-colors ${
+                          className={`w-full text-blue-600 hover:text-blue-700 text-sm flex items-center justify-center py-2 border-2 border-dashed border-blue-300 rounded-xl hover:border-blue-400 transition-colors ${
                             dropdown.options.length >= 10
                               ? "opacity-50 cursor-not-allowed"
                               : ""
                           }`}
-                          aria-label={`Add new option to dropdown ${dropdown.id}`}
                         >
                           <Plus className="w-4 h-4 mr-1" />
                           Add Option
                         </button>
-                        {dropdown.options.length === 0 && (
-                          <p className="text-red-500 text-xs mt-1">
-                            At least one option is required.
-                          </p>
-                        )}
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
+
+                      <div className="mt-4">
+                        <label className="block text-xs font-semibold text-purple-700 mb-1">
                           Correct Answer (Preview)
                         </label>
                         <select
@@ -583,10 +942,9 @@ const GraphicsInterpretationStructure = () => {
                           onChange={(e) =>
                             setDropdownAnswer(dropdown.id, e.target.value)
                           }
-                          className="w-full p-2 border border-gray-200 rounded text-sm focus:border-purple-300 focus:ring-1 focus:ring-purple-200"
-                          aria-label={`Correct answer for dropdown ${dropdown.id}`}
+                          className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
                         >
-                          <option value="">Select correct answer...</option>
+                          <option value="">Select...</option>
                           {dropdown.options.map((option, index) => (
                             <option key={index} value={option}>
                               {option}
@@ -595,99 +953,77 @@ const GraphicsInterpretationStructure = () => {
                         </select>
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeDropdown(dropdown.id)}
-                      disabled={questionData.dropdowns.length <= 1}
-                      className={`p-1 ${
-                        questionData.dropdowns.length <= 1
-                          ? "text-gray-400 cursor-not-allowed"
-                          : "text-red-500 hover:text-red-700"
-                      }`}
-                      aria-label={`Remove dropdown ${dropdown.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              ))}
+
+                <button
+                  onClick={addDropdown}
+                  disabled={questionData.dropdowns.length >= 4}
+                  className={`w-full text-blue-600 hover:text-blue-700 text-sm flex items-center justify-center py-3 border-2 border-dashed border-blue-300 rounded-xl hover:border-blue-400 transition-colors ${
+                    questionData.dropdowns.length >= 4
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Dropdown {questionData.dropdowns.length >= 4 && "(Max 4)"}
+                </button>
+              </div>
             </div>
+          </div>
 
+          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6 mt-6 border-t border-gray-200">
             <button
-              onClick={addDropdown}
-              className="w-full text-blue-600 hover:text-blue-700 text-sm flex items-center justify-center py-2 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-400 transition-colors"
-              aria-label="Add new dropdown"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add Dropdown
-            </button>
-          </div>
-        </div>
-
-        {questionData.conclusionTemplate && (
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium text-gray-800 mb-2">
-              Template Preview:
-            </h4>
-            <p className="text-sm text-gray-700">
-              {renderConclusionWithDropdowns(
-                questionData.conclusionTemplate,
-                questionData.dropdowns,
-                false
-              )}
-            </p>
-          </div>
-        )}
-
-        <div className="flex justify-center space-x-4 pt-4">
-          <button
-            onClick={() => setCurrentView("preview")}
-            disabled={
-              !questionData.graphUrl ||
-              !questionData.conclusionTemplate.trim() ||
-              questionData.dropdowns.length === 0 ||
-              questionData.dropdowns.some(
-                (dropdown) => dropdown.options.length === 0
-              )
-            }
-            className={`px-6 py-2 rounded-lg flex items-center space-x-2 ${
-              !questionData.graphUrl ||
-              !questionData.conclusionTemplate.trim() ||
-              questionData.dropdowns.length === 0 ||
-              questionData.dropdowns.some(
-                (dropdown) => dropdown.options.length === 0
-              )
-                ? "bg-gray-400 cursor-not-allowed text-gray-600"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
-            aria-label="Preview question"
-          >
-            <Play className="w-4 h-4" />
-            <span>Preview Question</span>
-          </button>
-        </div>
-
-        {(!questionData.graphUrl ||
-          !questionData.conclusionTemplate.trim() ||
-          questionData.dropdowns.length === 0 ||
-          questionData.dropdowns.some(
-            (dropdown) => dropdown.options.length === 0
-          )) && (
-          <div className="text-center text-red-500 text-sm mt-2">
-            {!questionData.graphUrl
-              ? "Please upload a graph image."
-              : !questionData.conclusionTemplate.trim()
-              ? "Please add a conclusion template."
-              : questionData.dropdowns.length === 0
-              ? "Please add at least one dropdown."
-              : questionData.dropdowns.some(
+              onClick={() => setCurrentView("preview")}
+              disabled={
+                !questionData.graphUrl ||
+                !questionData.conclusionTemplate.trim() ||
+                questionData.dropdowns.length === 0 ||
+                questionData.dropdowns.some(
                   (dropdown) => dropdown.options.length === 0
                 )
-              ? "Please add at least one option to each dropdown."
-              : "Please complete all required fields."}
+              }
+              className={`px-6 py-3 rounded-xl flex items-center space-x-2 text-sm font-medium transition-all ${
+                !questionData.graphUrl ||
+                !questionData.conclusionTemplate.trim() ||
+                questionData.dropdowns.length === 0 ||
+                questionData.dropdowns.some(
+                  (dropdown) => dropdown.options.length === 0
+                )
+                  ? "bg-gray-300 cursor-not-allowed text-gray-600"
+                  : "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+              }`}
+              aria-label="Preview question"
+            >
+              <Eye className="w-4 h-4" />
+              <span>Preview Question</span>
+            </button>
           </div>
-        )}
+
+          {(!questionData.graphUrl ||
+            !questionData.conclusionTemplate.trim() ||
+            questionData.dropdowns.length === 0 ||
+            questionData.dropdowns.some(
+              (dropdown) => dropdown.options.length === 0
+            )) && (
+            <div className="text-center text-red-500 text-sm mt-3 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 mr-1" />
+              {!questionData.graphUrl
+                ? "Please upload a graph image."
+                : !questionData.conclusionTemplate.trim()
+                ? "Please add a conclusion template."
+                : questionData.dropdowns.length === 0
+                ? "Please add at least one dropdown."
+                : questionData.dropdowns.some(
+                    (dropdown) => dropdown.options.length === 0
+                  )
+                ? "Please add at least one option to each dropdown."
+                : "Please complete all required fields."}
+            </div>
+          )}
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 

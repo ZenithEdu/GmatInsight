@@ -51,6 +51,7 @@ const REQUIRED_HEADERS = [
 ];
 
 const INITIAL_QUESTION_DATA = {
+  setId: "",
   contextText: "",
   instructionText: "",
   tableHeaders: ["Option 1", "Option 2"],
@@ -769,12 +770,9 @@ const TwoPartAnalysisStructure = () => {
         },
       };
       await axios.post(`${API_URL}/twoPartAnalysis/upload`, questionPayload);
-
-      setTimeout(() => {
+      setLoading(false);
         showSnackbar("Question saved successfully!", { type: "success" });
         clearForm();
-        setLoading(false);
-      }, 1500);
     } catch (err) {
       showSnackbar("Error saving question: " + err.message, { type: "error" });
       setLoading(false);

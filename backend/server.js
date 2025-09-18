@@ -8,6 +8,7 @@ const verbalVaultRoutes = require('./routes/verbalVaultRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
 const quantVaultRoutes = require('./routes/quantVaultRoutes');
 const twoPartAnalysisRoutes = require('./routes/twoPartAnalysisRoutes');
+const graphicsInterpretationRoutes = require('./routes/graphicsInterpretationRoutes');
 
 // Admin auth routes
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
@@ -35,12 +36,12 @@ app.get('/', (req, res) => {
 });
 
 // Use routers
-
 app.use('/api/verbalVault', verbalVaultRoutes);
 app.use('/api/quantVault', quantVaultRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/dataSufficiency', dataSufficiencyRoutes);
 app.use('/api/twoPartAnalysis', twoPartAnalysisRoutes);
+app.use('/api/graphicsInterpretation', graphicsInterpretationRoutes);
 
 
 // admin auth routes

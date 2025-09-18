@@ -73,16 +73,19 @@ export default function DataInsightPage() {
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
     try {
-      const [dsRes, tpaRes] = await Promise.all([
+      const [dsRes, tpaRes, giRes] = await Promise.all([
         fetch(`${API_URL}/dataSufficiency`),
         fetch(`${API_URL}/twoPartAnalysis`),
+        fetch(`${API_URL}/graphicsInterpretation`),
       ]);
 
       if (!dsRes.ok) throw new Error("Failed to fetch Data Sufficiency questions");
       if (!tpaRes.ok) throw new Error("Failed to fetch Two-Part Analysis questions");
+      if (!giRes.ok) throw new Error("Failed to fetch Graphics Interpretation questions");
 
       const ds = await dsRes.json();
       const tpa = await tpaRes.json();
+      const gi = await giRes.json();
 
       const dsQuestions = (ds || []).map((q) => ({
         ...q,
@@ -92,7 +95,11 @@ export default function DataInsightPage() {
         ...q,
         type: "Two-part Analysis",
       }));
-      setQuestions([...dsQuestions, ...tpaQuestions]);
+      const giQuestions = (gi || []).map((q) => ({
+        ...q,
+        type: "Graphics Interpretation",
+      }));
+      setQuestions([...dsQuestions, ...tpaQuestions, ...giQuestions]);
     } catch (err) {
       setError(err.message);
       setQuestions([]);
@@ -766,7 +773,7 @@ export default function DataInsightPage() {
 
             {/* Questions Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="hidden md:grid grid-cols-[0.5fr_0.7fr_1fr_1.5fr_1.5fr_1fr_0.8fr_0.8fr_1fr_1fr_1fr] bg-emerald-50 px-4 py-3 border-b border-emerald-200 text-sm font-semibold text-emerald-600">
+              <div className="hidden md:grid grid-cols-[0.5fr_0.7fr_1fr_1.7fr_1.3fr_1fr_0.8fr_0.8fr_1fr_1fr_1fr] bg-emerald-50 px-4 py-3 border-b border-emerald-200 text-sm font-semibold text-emerald-600">
                 <div>S.No</div>
                 <div
                   className="cursor-pointer"
@@ -828,7 +835,7 @@ export default function DataInsightPage() {
                 sortedQuestions.map((q, index) => (
                   <div
                     key={q.questionId}
-                    className="grid grid-cols-1 md:grid-cols-[0.5fr_0.7fr_1fr_1.5fr_1.5fr_1fr_0.8fr_0.8fr_1fr_1fr_1fr] px-4 py-3 border-b border-emerald-200 hover:bg-emerald-50 transition-colors text-sm"
+                    className="grid grid-cols-1 md:grid-cols-[0.5fr_0.7fr_1fr_1.7fr_1.3fr_1fr_0.8fr_0.8fr_1fr_1fr_1fr] px-4 py-3 border-b border-emerald-200 hover:bg-emerald-50 transition-colors text-sm"
                   >
                     <div className="py-2 md:py-0 font-medium">{getSerialNumber(index)}</div>
                     <div className="py-2 md:py-0">{q.set_id || "N/A"}</div>
@@ -840,7 +847,7 @@ export default function DataInsightPage() {
                     </div>
                     <div className="flex items-center py-2 md:py-0 capitalize">
                       {getQuestionTypeIcon(q.type)}
-                      <span className="truncate" title={q.type}>
+                      <span className="truncate " title={q.type}>
                         {q.type}
                       </span>
                     </div>

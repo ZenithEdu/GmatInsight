@@ -1,5 +1,9 @@
+fine tune admin lock
 admin header -> admin's information. logout.
 verbal ke naam ko structure ke upload page karo.
 quant verbal me download excel ka button gayab ho jab file preview ke liye ready hai
-di page sahi karo
 
+
+di page sundar banao.
+regenerated sahi karo preview me sab data nhi aa raha.
+graphics me domain ka dialog nhi aa raha 
