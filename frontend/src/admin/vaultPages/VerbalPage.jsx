@@ -42,7 +42,10 @@ export default function VerbalPage() {
     level: "",
     createdAt: "",
   });
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [sortConfig, setSortConfig] = useState({ 
+    key: "createdAt", 
+    direction: "asc" 
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -264,7 +267,6 @@ export default function VerbalPage() {
       direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
   }, []);
-
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) =>
       Object.entries(filters).every(([key, value]) => {
@@ -305,6 +307,18 @@ export default function VerbalPage() {
       return 0;
     });
   }, [filteredQuestions, sortConfig]);
+  const getSerialNumber = useCallback(
+    (index) => {
+      if (sortConfig.direction === "asc") {
+        return index + 1;
+      } else {
+        return sortedQuestions.length - index;
+      }
+    },
+    [sortedQuestions.length, sortConfig.direction]
+  );
+
+
 
   const getSortIcon = useCallback(
     (key) => {
@@ -567,96 +581,125 @@ export default function VerbalPage() {
 
             {/* Questions Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="hidden md:grid grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] bg-purple-50 px-4 py-3 border-b border-purple-200 text-sm font-semibold text-purple-600">
+              <div className="hidden md:grid grid-cols-[60px_60px_120px_180px_180px_100px_100px_160px_100px_120px] bg-purple-600 px-4 py-3 border-b border-purple-200 text-sm font-semibold text-white sticky top-0 z-10">
+                <div className="text-center">S.No</div>
                 <div
-                  className="cursor-pointer"
+                  className="cursor-pointer flex items-center justify-center"
                   onClick={() => handleSort("set_id")}
                 >
                   Set ID {getSortIcon("set_id")}
                 </div>
                 <div
-                  className="cursor-pointer"
+                  className="cursor-pointer flex items-center justify-center"
                   onClick={() => handleSort("questionId")}
                 >
                   Question ID {getSortIcon("questionId")}
                 </div>
                 <div
-                  className="cursor-pointer"
+                  className="cursor-pointer flex items-center justify-left"
                   onClick={() => handleSort("type")}
                 >
                   Type {getSortIcon("type")}
                 </div>
                 <div
-                  className="cursor-pointer"
+                  className="cursor-pointer flex items-center justify-left"
                   onClick={() => handleSort("topic")}
                 >
                   Topic {getSortIcon("topic")}
                 </div>
                 <div
-                  className="cursor-pointer"
+                  className="cursor-pointer flex items-center justify-center"
                   onClick={() => handleSort("difficulty")}
                 >
                   Difficulty {getSortIcon("difficulty")}
                 </div>
                 <div
-                  className="cursor-pointer"
+                  className="cursor-pointer flex items-center justify-center"
                   onClick={() => handleSort("level")}
                 >
                   Level {getSortIcon("level")}
                 </div>
                 <div
-                  className="cursor-pointer"
+                  className="cursor-pointer flex items-center justify-left"
                   onClick={() => handleSort("createdAt")}
                 >
                   Created At {getSortIcon("createdAt")}
                 </div>
-                <div>Source</div>
-                <div>Actions</div>
+                <div
+                  className="cursor-pointer flex items-center justify-left"
+                  onClick={() => handleSort("source")}
+                >
+                  Source {getSortIcon("source")}
+                </div>
+                <div className="text-center">Actions</div>
               </div>
               {sortedQuestions.length > 0 ? (
-                sortedQuestions.map((q) => (
+                sortedQuestions.map((q, index) => (
                   <div
                     key={q.questionId}
-                    className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] px-4 py-3 border-b border-purple-200 hover:bg-purple-50 transition-colors text-sm"
+                    className="grid grid-cols-1 md:grid-cols-[60px_60px_120px_180px_180px_100px_100px_160px_100px_120px] px-4 py-3 border-b border-purple-200 hover:bg-purple-50 transition-colors text-sm"
                   >
-                    <div>{q.set_id || "N/A"}</div>
-                    <div className="flex items-center py-2 md:py-0">
+                    <div className="flex items-center justify-center py-2 md:py-0">
+                      <span className="font-medium text-purple-100 bg-purple-600 w-8 h-8 flex items-center justify-center rounded">
+                        {getSerialNumber(index)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-center py-2 md:py-0 font-mono text-sm">
+                      {q.set_id || "N/A"}
+                    </div>
+                    <div className="flex items-center justify-center py-2 md:py-0">
                       <FileText className="w-4 h-4 text-purple-600 mr-2" />
-                      <span className="font-medium" title={q.questionId}>{q.questionId}</span>
-                    </div>
-
-                    <div className="truncate cursor-default" title={q.type}>
-                      {q.type?.replace("_", " ").toUpperCase() || "N/A"}
-                    </div>
-                    <div className="truncate cursor-default" title={q.topic}>
-                      {q.topic || "N/A"}
-                    </div>
-                    <div>
                       <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${getDifficultyClass(
+                        className="font-medium truncate"
+                        title={q.questionId}
+                      >
+                        {q.questionId}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-left py-2 md:py-0 capitalize">
+                      <span className="truncate text-[14px]" title={q.type}>
+                        {q.type?.replace("_", " ") || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center py-2 md:py-0 justify-left">
+                      <span
+                        className="truncate "
+                        title={q.topic}
+                      >
+                        {q.topic || "N/A"}
+                      </span>
+                    </div>
+                    <div className="py-2 md:py-0 flex items-center justify-center">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyClass(
                           q.difficulty
                         )}`}
                       >
                         {q.difficulty || "N/A"}
                       </span>
                     </div>
-                    <div>{q.level?.toUpperCase() || "N/A"}</div>
-                    <div>
+                    <div className="py-2 md:py-0 flex items-center justify-center font-medium">
+                      {q.level?.toUpperCase() || "N/A"}
+                    </div>
+                    <div className="text-gray-500 py-2 md:py-0 flex items-center justify-left text-xs">
                       {q.metadata?.createdAt
-                        ? new Date(q.metadata.createdAt).toLocaleDateString()
+                        ? new Intl.DateTimeFormat("en-IN", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          }).format(new Date(q.metadata.createdAt))
                         : "N/A"}
                     </div>
-                    <div className="capitalize">
+                    <div className="py-2 md:py-0 flex items-center justify-left capitalize italic text-sm text-gray-600">
                       {q.metadata?.source === "regenerated"
                         ? "regenerated"
                         : q.metadata?.source === "excel"
                         ? "excel"
                         : "manual"}
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 items-center py-2 md:py-0 justify-center">
                       <button
                         onClick={() => handleRegenerate(q.questionId)}
-                        className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors cursor-pointer"
+                        className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors"
                         title="Regenerate"
                         aria-label={`Regenerate question ${q.questionId}`}
                       >
@@ -664,7 +707,7 @@ export default function VerbalPage() {
                       </button>
                       <button
                         onClick={() => handlePreview(q.questionId)}
-                        className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors cursor-pointer"
+                        className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                         title="Preview"
                         aria-label={`Preview question ${q.questionId}`}
                       >
@@ -673,7 +716,7 @@ export default function VerbalPage() {
 
                       <button
                         onClick={() => handleDelete(q.questionId)}
-                        className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors cursor-pointer"
+                        className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                         title="Delete"
                         aria-label={`Delete question ${q.questionId}`}
                       >

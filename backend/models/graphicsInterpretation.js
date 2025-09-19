@@ -20,7 +20,7 @@ const graphicsInterpretationSchema = new mongoose.Schema({
     },
   ],
   explanation: { type: String },
-  contentDomain: { type: String, default: 'Math' },
+  contentDomain: { type: String, default: 'non-math' },
   metadata: {
     source: { type: String, default: 'manual' },
     createdAt: { type: Date, default: Date.now },

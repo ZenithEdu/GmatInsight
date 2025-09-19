@@ -20,25 +20,26 @@ import { InlineMath } from "react-katex";
 import { useSnackbar } from "../../components/SnackbarProvider";
 
 const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
-const levelOptions = ["All", "L1", "L2", "L3", "L4", "L5"];
+const levelOptions = ["All", "l1", "l2", "l3", "l4", "l5"];
 
 export default function QuantPage() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [filters, setFilters] = useState({
-    set_id: "",
     id: "",
     topic: "",
     difficulty: "",
     level: "",
     createdAt: "",
   });
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [sortConfig, setSortConfig] = useState({ 
+    key: "createdAt", 
+    direction: "asc" 
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const [isEditing, setIsEditing] = useState(false);
   const [editedQuestion, setEditedQuestion] = useState(null);
   const [formErrors, setFormErrors] = useState({});
@@ -51,7 +52,6 @@ export default function QuantPage() {
   const API_URL = import.meta.env.VITE_API_URL;
   const showSnackbar = useSnackbar();
 
-  // Fetch quant questions from backend
   useEffect(() => {
     setLoading(true);
     fetch(`${API_URL}/quantVault/QuantVaultQuestions`)
@@ -129,7 +129,6 @@ export default function QuantPage() {
         const errData = await res.json();
         throw new Error(errData.error || "Failed to delete question");
       }
-      // Re-fetch questions after delete
       const refreshed = await fetch(
         `${API_URL}/quantVault/QuantVaultQuestions`
       );
@@ -264,14 +263,6 @@ export default function QuantPage() {
           return String(q.questionId || "")
             .toLowerCase()
             .includes(value.toLowerCase());
-        if (key === "set_id")
-          return String(q.set_id || "")
-            .toLowerCase()
-            .includes(value.toLowerCase());
-        if (key === "level")
-          return String(q.level || "")
-            .toLowerCase()
-            .includes(value.toLowerCase());
         return String(q[key] || "")
           .toLowerCase()
           .includes(value.toLowerCase());
@@ -298,6 +289,17 @@ export default function QuantPage() {
     });
   }, [filteredQuestions, sortConfig]);
 
+  const getSerialNumber = useCallback(
+    (index) => {
+      if (sortConfig.direction === "asc") {
+        return index + 1;
+      } else {
+        return sortedQuestions.length - index;
+      }
+    },
+    [sortedQuestions.length, sortConfig.direction]
+  );
+
   const getSortIcon = useCallback(
     (key) => {
       if (sortConfig.key !== key) return null;
@@ -316,7 +318,6 @@ export default function QuantPage() {
 
   const resetFilters = useCallback(() => {
     setFilters({
-      set_id: "",
       id: "",
       topic: "",
       difficulty: "",
@@ -332,7 +333,6 @@ export default function QuantPage() {
   const confirmRegenerate = useCallback(async () => {
     if (!confirmDialog.questionId) return;
     setConfirmDialog({ open: false, type: "", questionId: null });
-    showSnackbar("Question regenerated successfully", { type: "success" });
     try {
       const res = await fetch(
         `${API_URL}/quantVault/QuantVaultQuestions/${confirmDialog.questionId}/regenerate`,
@@ -342,7 +342,6 @@ export default function QuantPage() {
         const errData = await res.json();
         throw new Error(errData.error || "Failed to regenerate question");
       }
-      // Reload questions after regeneration
       const refreshed = await fetch(
         `${API_URL}/quantVault/QuantVaultQuestions`
       );
@@ -355,7 +354,6 @@ export default function QuantPage() {
     }
   }, [API_URL, confirmDialog.questionId]);
 
-  // Helper to render text with inline LaTeX (same as upload page)
   const renderTextWithLatex = (text) => {
     if (!text) return null;
     const parts = text.split(/(\$\$.*?\$\$)/g);
@@ -370,7 +368,7 @@ export default function QuantPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
       {/* Dialogs */}
       <Dialog
         open={confirmDialog.open && confirmDialog.type === "delete"}
@@ -413,7 +411,7 @@ export default function QuantPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center px-4 py-2 bg-white border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
+              className="flex items-center px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
             >
               <Filter className="w-4 h-4 mr-2" />
               Filters
@@ -430,33 +428,23 @@ export default function QuantPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Filter Panel */}
         {showFilters && (
-          <div className="bg-white rounded-lg shadow-sm border border-blue-100 p-4 mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-1">
-                  Set ID
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm"
-                  placeholder="Search Set ID"
-                  value={filters.set_id}
-                  onChange={(e) => updateFilter("set_id", e.target.value)}
-                />
-              </div>
+          <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-blue-700 mb-1">
                   Question ID
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-400" />
                   <input
-                    className="w-full pl-10 pr-3 py-2 border border-blue-200 rounded-lg text-sm"
+                    className="w-full pl-10 pr-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                     placeholder="Search ID"
                     value={filters.id}
                     onChange={(e) => updateFilter("id", e.target.value)}
+                    aria-label="Search by Question ID"
                   />
                 </div>
               </div>
@@ -465,10 +453,11 @@ export default function QuantPage() {
                   Topic
                 </label>
                 <input
-                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   placeholder="Search topic"
                   value={filters.topic}
                   onChange={(e) => updateFilter("topic", e.target.value)}
+                  aria-label="Search by Topic"
                 />
               </div>
               <div>
@@ -476,12 +465,16 @@ export default function QuantPage() {
                   Difficulty
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={filters.difficulty}
                   onChange={(e) => updateFilter("difficulty", e.target.value)}
+                  aria-label="Filter by Difficulty"
                 >
                   {difficultyOptions.map((option) => (
-                    <option key={option} value={option === "All" ? "" : option}>
+                    <option
+                      key={option}
+                      value={option === "All" ? "" : option}
+                    >
                       {option}
                     </option>
                   ))}
@@ -492,13 +485,17 @@ export default function QuantPage() {
                   Level
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={filters.level}
                   onChange={(e) => updateFilter("level", e.target.value)}
+                  aria-label="Filter by Level"
                 >
                   {levelOptions.map((option) => (
-                    <option key={option} value={option === "All" ? "" : option}>
-                      {option}
+                    <option
+                      key={option}
+                      value={option === "All" ? "" : option}
+                    >
+                      {option.toUpperCase()}
                     </option>
                   ))}
                 </select>
@@ -506,22 +503,24 @@ export default function QuantPage() {
               <div className="flex items-end">
                 <button
                   onClick={resetFilters}
-                  className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer text-sm flex items-center justify-center"
+                  className="w-full px-3 py-2 bg-blue-200 text-blue-700 rounded-lg hover:bg-blue-300 transition-colors"
+                  aria-label="Reset Filters"
                 >
                   Reset Filters
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-blue-700 mb-1">
                   Created Date
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={filters.createdAt}
                   onChange={(e) => updateFilter("createdAt", e.target.value)}
+                  aria-label="Filter by Created Date"
                 />
               </div>
             </div>
@@ -529,64 +528,86 @@ export default function QuantPage() {
         )}
 
         {/* Questions Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-          {/* Table Header */}
-          <div className="hidden md:grid grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] bg-blue-50/50 px-4 py-3 border-b border-blue-100 text-sm font-semibold text-blue-600">
+        
+        <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden">
+          <div className="hidden md:grid grid-cols-[80px_80px_140px_120px_100px_120px_180px_100px_120px] bg-blue-600 px-4 py-3 border-b border-blue-200 text-sm font-semibold text-white sticky top-0 z-10">
+            <div className="text-center">S.No</div>
             <div
-              className="cursor-pointer"
+              className="cursor-pointer flex items-center justify-center"
               onClick={() => handleSort("set_id")}
             >
               Set ID {getSortIcon("set_id")}
             </div>
             <div
-              className="cursor-pointer"
+              className="cursor-pointer flex items-center justify-center"
               onClick={() => handleSort("questionId")}
             >
               Question ID {getSortIcon("questionId")}
             </div>
-            <div className="cursor-pointer" onClick={() => handleSort("type")}>
-              Type {getSortIcon("type")}
-            </div>
-            <div className="cursor-pointer" onClick={() => handleSort("topic")}>
+            <div
+              className="cursor-pointer flex items-center justify-left"
+              onClick={() => handleSort("topic")}
+            >
               Topic {getSortIcon("topic")}
             </div>
             <div
-              className="cursor-pointer"
+              className="cursor-pointer flex items-center justify-center"
               onClick={() => handleSort("difficulty")}
             >
               Difficulty {getSortIcon("difficulty")}
             </div>
-            <div className="cursor-pointer" onClick={() => handleSort("level")}>
+            <div
+              className="cursor-pointer flex items-center justify-center"
+              onClick={() => handleSort("level")}
+            >
               Level {getSortIcon("level")}
             </div>
             <div
-              className="cursor-pointer"
+              className="cursor-pointer flex items-center justify-left"
               onClick={() => handleSort("createdAt")}
             >
               Created At {getSortIcon("createdAt")}
             </div>
-            <div>Source</div>
-            <div>Actions</div>
+            <div
+              className="cursor-pointer flex items-center justify-left"
+              onClick={() => handleSort("source")}
+            >
+              Source {getSortIcon("source")}
+            </div>
+            <div className="text-center">Actions</div>
           </div>
-
-          {/* Table Rows */}
           {sortedQuestions.length > 0 ? (
-            sortedQuestions.map((q) => (
+            sortedQuestions.map((q, index) => (
               <div
                 key={q.questionId}
-                className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1.2fr_1.5fr_1.2fr_0.8fr_0.8fr_0.8fr_1fr] px-4 py-3 border-b border-blue-100 hover:bg-blue-50 transition-colors text-sm"
+                className="grid grid-cols-1 md:grid-cols-[80px_80px_140px_120px_100px_120px_180px_100px_120px] px-4 py-3 border-b border-blue-200 hover:bg-blue-50 transition-colors text-sm"
               >
-                <div>{q.set_id || "N/A"}</div>
-                    <div className="flex items-center py-2 md:py-0">
-                      <FileText className="w-4 h-4 text-blue-600 mr-2" />
-                      <span className="font-medium" title={q.questionId}>{q.questionId}</span>
-                    </div>                <div className="truncate cursor-default" title={q.type}>
-                  {q.type?.replace("_", " ").toUpperCase() || "N/A"}
+                <div className="flex items-center justify-center py-2 md:py-0">
+                  <span className="font-medium text-blue-100 bg-blue-600 w-8 h-8 flex items-center justify-center rounded">
+                    {getSerialNumber(index)}
+                  </span>
                 </div>
-                <div className="truncate py-2 md:py-0" title={q.topic}>
-                  {q.topic || "N/A"}
+                <div className="flex items-center justify-center py-2 md:py-0 font-mono text-sm">
+                  {q.set_id || "N/A"}
                 </div>
-                <div>
+                <div className="flex items-center justify-center py-2 md:py-0">
+                  <FileText className="w-4 h-4 text-blue-600 mr-2" />
+                  <span
+                    className="font-medium truncate"
+                    title={q.questionId}
+                  >
+                    {q.questionId}
+                  </span>
+                </div>
+                <div className="flex items-center py-2 md:py-0 justify-left">
+                  <span
+                    className="truncate"
+                    title={q.topic}
+                  >
+                    {q.topic || "N/A"}
+                  </span>
+                </div>
+                <div className="py-2 md:py-0 flex items-center justify-center">
                   <span
                     className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyClass(
                       q.difficulty
@@ -595,26 +616,30 @@ export default function QuantPage() {
                     {q.difficulty || "N/A"}
                   </span>
                 </div>
-                <div>{q.level?.toUpperCase() || "N/A"}</div>
-                <div>
+                <div className="py-2 md:py-0 flex items-center justify-center font-medium">
+                  {q.level?.toUpperCase() || "N/A"}
+                </div>
+                <div className="text-gray-500 py-2 md:py-0 flex items-center justify-left text-xs">
                   {q.metadata?.createdAt
-                    ? new Date(q.metadata.createdAt).toLocaleDateString()
+                    ? new Intl.DateTimeFormat("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(q.metadata.createdAt))
                     : "N/A"}
                 </div>
-                <div className="capitalize">
+                <div className="py-2 md:py-0 flex items-center justify-left capitalize italic text-sm text-gray-600">
                   {q.metadata?.source === "regenerated"
                     ? "regenerated"
                     : q.metadata?.source === "excel"
                     ? "excel"
                     : "manual"}
                 </div>
-                <div className="flex gap-2 items-center py-2 md:py-0">
+                <div className="flex gap-2 items-center py-2 md:py-0 justify-center">
                   <button
                     onClick={() => handleRegenerate(q.questionId)}
                     className="p-1.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors"
                     title="Regenerate"
                     aria-label={`Regenerate question ${q.questionId}`}
-
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -638,12 +663,13 @@ export default function QuantPage() {
               </div>
             ))
           ) : (
-            <div className="px-4 py-8 text-center text-blue-400">
-              <FileText className="w-12 h-12 mx-auto mb-4 text-blue-200" />
+            <div className="px-4 py-8 text-center text-gray-500">
+              <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
               <p className="mb-2">No questions match your filters</p>
               <button
                 onClick={resetFilters}
                 className="text-blue-600 hover:text-blue-800 font-medium"
+                aria-label="Reset filters"
               >
                 Reset filters
               </button>
@@ -662,10 +688,10 @@ export default function QuantPage() {
                 <FileText className="w-5 h-5 text-blue-600" />
                 <div>
                   <h3 className="text-lg font-semibold text-blue-800">
-                    {selectedQuestion.questionId} - {selectedQuestion.topic}
+                    {selectedQuestion.questionId} - Quantitative
                   </h3>
                   <p className="text-sm text-blue-600">
-                    {selectedQuestion.type || "Quantitative Reasoning"}
+                    {selectedQuestion.topic || "N/A"}
                   </p>
                 </div>
               </div>
@@ -682,13 +708,13 @@ export default function QuantPage() {
             <div className="flex-1 overflow-y-auto p-4">
               {/* Metadata Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <label className="text-xs font-medium text-blue-600 mb-1 block">
                     Set ID
                   </label>
                   {isEditing ? (
                     <input
-                      className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
+                      className={`w-full px-2 py-1 border border-blue-200 rounded text-sm focus:outline-none focus:ring-1 ${
                         formErrors.set_id
                           ? "border-red-500"
                           : "focus:ring-blue-500"
@@ -709,13 +735,14 @@ export default function QuantPage() {
                     </p>
                   )}
                 </div>
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <label className="text-xs font-medium text-blue-600 mb-1 block">
                     Difficulty
                   </label>
                   {isEditing ? (
                     <select
-                      className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
+                      className={`w-full px-2 py-1 border border-blue-200 rounded text-sm focus:outline-none focus:ring-1 ${
                         formErrors.difficulty
                           ? "border-red-500"
                           : "focus:ring-blue-500"
@@ -749,13 +776,14 @@ export default function QuantPage() {
                     </p>
                   )}
                 </div>
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <label className="text-xs font-medium text-blue-600 mb-1 block">
                     Topic
                   </label>
                   {isEditing ? (
                     <input
-                      className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
+                      className={`w-full px-2 py-1 border border-blue-200 rounded text-sm focus:outline-none focus:ring-1 ${
                         formErrors.topic
                           ? "border-red-500"
                           : "focus:ring-blue-500"
@@ -776,13 +804,14 @@ export default function QuantPage() {
                     </p>
                   )}
                 </div>
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <label className="text-xs font-medium text-blue-600 mb-1 block">
                     Level
                   </label>
                   {isEditing ? (
                     <select
-                      className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
+                      className={`w-full px-2 py-1 border border-blue-200 rounded text-sm focus:outline-none focus:ring-1 ${
                         formErrors.level
                           ? "border-red-500"
                           : "focus:ring-blue-500"
@@ -797,13 +826,13 @@ export default function QuantPage() {
                         .filter((opt) => opt !== "All")
                         .map((option) => (
                           <option key={option} value={option}>
-                            {option}
+                            {option.toUpperCase()}
                           </option>
                         ))}
                     </select>
                   ) : (
-                    <span className="text-sm font-medium text-gray-800">
-                      {selectedQuestion.level || "N/A"}
+                    <span className="text-sm font-medium text-blue-800">
+                      {selectedQuestion.level?.toUpperCase() || "N/A"}
                     </span>
                   )}
                   {formErrors.level && (
@@ -812,8 +841,9 @@ export default function QuantPage() {
                     </p>
                   )}
                 </div>
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <label className="text-xs font-medium text-blue-600 mb-1 block">
                     Created At
                   </label>
                   <span className="text-xs text-blue-700">
@@ -824,8 +854,9 @@ export default function QuantPage() {
                       : "N/A"}
                   </span>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <label className="text-xs font-medium text-blue-600 mb-1 block">
                     Source
                   </label>
                   <span className="text-xs text-blue-700 capitalize">
@@ -839,14 +870,14 @@ export default function QuantPage() {
                 {/* Left Column */}
                 <div className="space-y-4">
                   {/* Question */}
-                  <div className="bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="bg-blue-100 rounded-lg border border-blue-300">
                     <div className="p-3">
                       <h4 className="font-medium text-blue-800 mb-2">
                         Question
                       </h4>
                       {isEditing ? (
                         <textarea
-                          className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-1 ${
+                          className={`w-full px-3 py-2 border border-blue-200 rounded text-sm focus:outline-none focus:ring-1 ${
                             formErrors.question
                               ? "border-red-500"
                               : "focus:ring-blue-500"
@@ -891,7 +922,7 @@ export default function QuantPage() {
                                 {String.fromCharCode(65 + index)}
                               </span>
                               <input
-                                className="flex-1 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+                                className="flex-1 px-2 py-1 border border-green-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
                                 value={option || ""}
                                 onChange={(e) =>
                                   handleOptionChange(index, e.target.value)
@@ -961,6 +992,7 @@ export default function QuantPage() {
                       )}
                     </div>
                   </div>
+
                   {/* Correct Answer (Edit Mode) */}
                   {isEditing && (
                     <div className="bg-yellow-50 rounded-lg border border-yellow-200">
@@ -969,7 +1001,7 @@ export default function QuantPage() {
                           Correct Answer
                         </h4>
                         <select
-                          className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-1 ${
+                          className={`w-full px-2 py-1 border border-yellow-200 rounded text-sm focus:outline-none focus:ring-1 ${
                             formErrors.answer
                               ? "border-red-500"
                               : "focus:ring-yellow-500"
@@ -1008,7 +1040,7 @@ export default function QuantPage() {
                     </h4>
                     {isEditing ? (
                       <textarea
-                        className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                        className="w-full px-3 py-2 border border-yellow-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
                         value={editedQuestion.explanation || ""}
                         onChange={(e) =>
                           handleEditChange("explanation", e.target.value)
@@ -1027,7 +1059,7 @@ export default function QuantPage() {
             </div>
 
             {/* Footer Actions */}
-            <div className="border-t bg-gray-50 p-4 flex justify-end gap-2">
+            <div className="border-t bg-blue-50 p-4 flex justify-end gap-2">
               {isEditing ? (
                 <>
                   <button

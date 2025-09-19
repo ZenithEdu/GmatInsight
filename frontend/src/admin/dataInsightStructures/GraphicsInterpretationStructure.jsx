@@ -21,11 +21,11 @@ import {
   Star,
   Hash,
 } from "lucide-react";
-import graphSample from "../../assets/graphsample.png";
 import GraphicsInterpretationPreview from "./preview/GraphicsInterpretationPreview";
 import { useSnackbar } from "../../components/SnackbarProvider";
 import Loading from "../../components/Loading";
 
+import GraphSample from "./GraphSample.json";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const GraphicsInterpretationStructure = () => {
@@ -60,11 +60,17 @@ const GraphicsInterpretationStructure = () => {
   const [imageUploaded, setImageUploaded] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrorsState] = useState({});
   const [showAllErrors, setShowAllErrors] = useState(false);
   const [activeHelp, setActiveHelp] = useState(null);
   const showSnackbar = useSnackbar();
   const navigate = useNavigate();
+
+  // Debug formErrors updates
+  const setFormErrors = (errors) => {
+    console.log("Setting formErrors:", errors);
+    setFormErrorsState(errors);
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -83,7 +89,7 @@ const GraphicsInterpretationStructure = () => {
     topic: "Data Interpretation",
     difficulty: "medium",
     level: "L3",
-    graphUrl: graphSample,
+    graphUrl: GraphSample.GraphSample || "",
     graphDescription:
       "The graph shows the percent of each type of employee at a certain medical clinic for the years 1970, 1980, and 2010. The total number of employees at the clinic in 2010 was exactly twice the number of employees at the clinic in 1970.",
     instructionText:
@@ -104,10 +110,9 @@ const GraphicsInterpretationStructure = () => {
         selectedValue: "",
       },
     ],
-    contentDomain: "Math",
+    contentDomain: "",
     explanation: "Explanation for the correct answers...",
   };
-
   const validateForm = () => {
     const errors = {};
     if (!questionData.topic) errors.topic = "Topic is required";
@@ -124,11 +129,17 @@ const GraphicsInterpretationStructure = () => {
       errors.dropdowns = "At least one dropdown is required";
     questionData.dropdowns.forEach((dropdown, index) => {
       if (dropdown.options.length === 0)
-        errors[`dropdown${index}`] =
-          "Each dropdown must have at least one option";
+        errors[`dropdown${index}`] = "Each dropdown must have at least one option";
       if (!dropdown.placeholder.trim())
         errors[`dropdownPlaceholder${index}`] = "Placeholder name is required";
     });
+    // Filter out empty or invalid error messages
+    Object.keys(errors).forEach((key) => {
+      if (!errors[key] || errors[key].trim() === "" || errors[key] === ".") {
+        delete errors[key];
+      }
+    });
+    console.log("Validation errors:", errors);
     return errors;
   };
 
@@ -136,9 +147,7 @@ const GraphicsInterpretationStructure = () => {
     setQuestionData(sampleData);
     setImageUploaded(true);
     setSetId(sampleData.setId || "");
-
     setError("");
-
     setFormErrors({});
     showSnackbar("Sample question loaded!", { type: "success" });
   };
@@ -146,8 +155,10 @@ const GraphicsInterpretationStructure = () => {
   const clearForm = () => {
     setQuestionData(initialQuestionData);
     setImageUploaded(false);
+    setSetId("");
     setError("");
     setFormErrors({});
+    setShowDomainDialog(false);
     showSnackbar("Form cleared", { type: "info" });
   };
 
@@ -328,6 +339,7 @@ const GraphicsInterpretationStructure = () => {
   };
 
   const handleSaveQuestion = () => {
+
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -335,10 +347,12 @@ const GraphicsInterpretationStructure = () => {
       showSnackbar("Please fix all errors before saving", { type: "error" });
       return;
     }
+
     if (!questionData.contentDomain) {
       setShowDomainDialog(true);
       return;
     }
+
     saveToBackend(questionData.contentDomain);
   };
 
@@ -348,35 +362,38 @@ const GraphicsInterpretationStructure = () => {
     saveToBackend(domain);
   };
 
-  const saveToBackend = useCallback(async (domain) => {
-    setLoading(true);
-    try {
-      const payload = {
-        set_id: setId || null,
-        topic: questionData.topic,
-        difficulty: questionData.difficulty,
-        level: questionData.level,
-        graphUrl: questionData.graphUrl,
-        graphDescription: questionData.graphDescription,
-        instructionText: questionData.instructionText,
-        conclusionTemplate: questionData.conclusionTemplate,
-        dropdowns: questionData.dropdowns,
-        contentDomain: domain,
-        explanation: questionData.explanation,
-        metadata: {
-          source: "manual",
-          createdAt: new Date().toISOString(),
-        },
-      };
-      await axios.post(`${API_URL}/graphicsInterpretation/upload`, payload);
-      setLoading(false);
-      showSnackbar("Question saved successfully!", { type: "success" });
-      clearForm();
-    } catch (err) {
-      showSnackbar("Error saving question: " + err.message, { type: "error" });
-      setLoading(false);
-    }
-  }, [questionData, setId, showSnackbar, clearForm]);
+  const saveToBackend = useCallback(
+    async (domain) => {
+      setLoading(true);
+      try {
+        const payload = {
+          set_id: setId || null,
+          topic: questionData.topic,
+          difficulty: questionData.difficulty,
+          level: questionData.level,
+          graphUrl: questionData.graphUrl,
+          graphDescription: questionData.graphDescription,
+          instructionText: questionData.instructionText,
+          conclusionTemplate: questionData.conclusionTemplate,
+          dropdowns: questionData.dropdowns,
+          contentDomain: domain,
+          explanation: questionData.explanation,
+          metadata: {
+            source: "manual",
+            createdAt: new Date().toISOString(),
+          },
+        };
+        await axios.post(`${API_URL}/graphicsInterpretation/upload`, payload);
+        showSnackbar("Question saved successfully!", { type: "success" });
+        clearForm();
+      } catch (err) {
+        showSnackbar("Error saving question: " + err.message, { type: "error" });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [questionData, setId, showSnackbar, clearForm]
+  );
 
   if (currentView === "preview") {
     return (
@@ -389,18 +406,21 @@ const GraphicsInterpretationStructure = () => {
     );
   }
 
-  const validationErrors = Object.values(formErrors);
+  const validationErrors = Object.values(formErrors).filter(
+    (error) => error && error.trim() !== "" && error !== "."
+  );
   const hasErrors = validationErrors.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50">
       <ContentDomainDialog
         isOpen={showDomainDialog}
-        onClose={() => setShowDomainDialog(false)}
+        onClose={() => {
+          setShowDomainDialog(false);
+        }}
         onConfirm={handleDomainConfirm}
       />
       {loading && <Loading overlay text="Saving question..." />}
-
       <header className="sticky top-0 z-50 bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -477,15 +497,17 @@ const GraphicsInterpretationStructure = () => {
                   {(showAllErrors
                     ? validationErrors
                     : validationErrors.slice(0, 5)
-                  ).map((error, index) => (
-                    <li
-                      key={index}
-                      className="flex items-start gap-2 py-1 border-b border-red-100 last:border-b-0"
-                    >
-                      <span className="text-red-500 mt-0.5">•</span>
-                      <span>{error}</span>
-                    </li>
-                  ))}
+                  ).map((error, index) =>
+                    error && error.trim() !== "" && error !== "." ? (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 py-1 border-b border-red-100 last:border-b-0"
+                      >
+                        <span className="text-red-500 mt-0.5">•</span>
+                        <span>{error}</span>
+                      </li>
+                    ) : null
+                  )}
                 </ul>
               </div>
             </div>
@@ -747,19 +769,19 @@ const GraphicsInterpretationStructure = () => {
                 )}
               </div>
               <div className="bg-purple-50 p-5 rounded-xl border border-purple-100 transition-all duration-200">
-                  <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
-                    <HelpCircle className="w-5 h-5" />
-                    Explanation
-                  </h3>
-                  <textarea
-                    value={questionData.explanation}
-                    onChange={(e) => handleInputChange("explanation", e.target.value)}
-                    rows={4}
-                    className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm hover:border-purple-400 transition-all duration-200"
-                    placeholder="Enter explanation..."
-                    aria-label="Question explanation"
-                  />
-                </div>
+                <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                  <HelpCircle className="w-5 h-5" />
+                  Explanation
+                </h3>
+                <textarea
+                  value={questionData.explanation}
+                  onChange={(e) => handleInputChange("explanation", e.target.value)}
+                  rows={4}
+                  className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm hover:border-purple-400 transition-all duration-200"
+                  placeholder="Enter explanation..."
+                  aria-label="Question explanation"
+                />
+              </div>
             </div>
 
             <div className="space-y-6">
