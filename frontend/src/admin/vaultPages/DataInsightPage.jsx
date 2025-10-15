@@ -13,6 +13,7 @@ import {
   RefreshCw,
   BarChart2,
   Check,
+  Table,
 } from "lucide-react";
 import { ListChecks, Workflow } from "lucide-react";
 import Loading from "../../components/Loading";
@@ -20,6 +21,7 @@ import Snackbar from "../../components/Snackbar";
 import Dialog from "../../components/Dialog";
 import { useSnackbar } from "../../components/SnackbarProvider";
 import QuestionPreviewModal from "./QuestionPreviewModal";
+import TableAnalysisPreviewModal from "./TableAnalysisPreviewModal"; // Add this import
 
 const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
 const levelOptions = ["All", "L1", "L2", "L3", "L4", "L5"];
@@ -28,6 +30,7 @@ const questionTypeOptions = [
   "Data Sufficiency",
   "Two-part Analysis",
   "Graphics Interpretation",
+  "Table Analysis",
 ];
 const contentDomainOptions = ["All", "Math", "Non-Math"];
 
@@ -58,16 +61,19 @@ export default function DataInsightPage() {
     type: "",
     questionId: null,
   });
+  const [showTableAnalysisModal, setShowTableAnalysisModal] = useState(false);
+  const [tableAnalysisEditData, setTableAnalysisEditData] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const showSnackbar = useSnackbar();
 
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
     try {
-      const [dsRes, tpaRes, giRes] = await Promise.all([
+      const [dsRes, tpaRes, giRes, tableRes] = await Promise.all([
         fetch(`${API_URL}/dataSufficiency`),
         fetch(`${API_URL}/twoPartAnalysis`),
         fetch(`${API_URL}/graphicsInterpretation`),
+        fetch(`${API_URL}/tableAnalysis`),
       ]);
 
       if (!dsRes.ok)
@@ -76,10 +82,13 @@ export default function DataInsightPage() {
         throw new Error("Failed to fetch Two-Part Analysis questions");
       if (!giRes.ok)
         throw new Error("Failed to fetch Graphics Interpretation questions");
+      if (!tableRes.ok)
+        throw new Error("Failed to fetch Table Analysis questions");
 
       const ds = await dsRes.json();
       const tpa = await tpaRes.json();
       const gi = await giRes.json();
+      const table = await tableRes.json();
 
       const dsQuestions = (ds || []).map((q) => ({
         ...q,
@@ -93,7 +102,23 @@ export default function DataInsightPage() {
         ...q,
         type: "Graphics Interpretation",
       }));
-      setQuestions([...dsQuestions, ...tpaQuestions, ...giQuestions]);
+      const tableQuestions = (table || []).map((q) => ({
+        ...q,
+        type: "Table Analysis",
+        questionId: q.questionId || q._id || "", // Use questionId from backend
+        set_id: q.setId || q.set_id || "",
+        contentDomain: q.contentDomain || "",
+        metadata: q.metadata || {},
+        topic: q.topic || "",
+        difficulty: q.difficulty || "",
+        level: q.level || "",
+      }));
+      setQuestions([
+        ...dsQuestions,
+        ...tpaQuestions,
+        ...giQuestions,
+        ...tableQuestions,
+      ]);
     } catch (err) {
       setError(err.message);
       setQuestions([]);
@@ -137,6 +162,9 @@ export default function DataInsightPage() {
       case "Data Sufficiency":
         return <ListChecks className="w-4 h-4 mr-2 text-violet-500" />;
 
+      case "Table Analysis":
+        return <Table className="w-4 h-4 mr-2 text-emerald-500" />; // Use Table icon
+
       default:
         return <FileText className="w-4 h-4 mr-2 text-gray-500" />;
     }
@@ -162,6 +190,8 @@ export default function DataInsightPage() {
         return "twoPartAnalysis";
       case "Graphics Interpretation":
         return "graphicsInterpretation";
+      case "Table Analysis":
+        return "tableAnalysis";
       default:
         return "";
     }
@@ -373,10 +403,55 @@ export default function DataInsightPage() {
             </p>
           </div>
         );
+      case "Table Analysis":
+        return (
+          <div className="mt-4">
+            <h4 className="font-medium text-gray-700">Table Analysis Details:</h4>
+            <p className="text-sm text-gray-600">
+              Rows: {question.rows?.length || 0}, Columns:{" "}
+              {question.columns?.length || 0}
+            </p>
+          </div>
+        );
       default:
         return null;
     }
   };
+
+  // Show Table Analysis preview modal
+  const handleTableAnalysisPreview = useCallback((id) => {
+    const question = questions.find((q) => q.questionId === id);
+    setTableAnalysisEditData(question);
+    setShowTableAnalysisModal(true);
+  }, [questions]);
+
+  // Update Table Analysis question
+  const handleTableAnalysisUpdate = useCallback(
+    async (updatedQuestion) => {
+      const endpoint = getEndpoint(updatedQuestion.type);
+      try {
+        const res = await fetch(
+          `${API_URL}/${endpoint}/${updatedQuestion.questionId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedQuestion),
+          }
+        );
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to update question");
+        }
+        await fetchQuestions();
+        showSnackbar("Question updated successfully", { type: "success" });
+        setShowTableAnalysisModal(false);
+        setTableAnalysisEditData(null);
+      } catch (err) {
+        showSnackbar(err.message, { type: "error" });
+      }
+    },
+    [API_URL, fetchQuestions, showSnackbar, getEndpoint]
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-100">
@@ -745,7 +820,11 @@ export default function DataInsightPage() {
                         <RefreshCw className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handlePreview(q.questionId)}
+                        onClick={() =>
+                          q.type === "Table Analysis"
+                            ? handleTableAnalysisPreview(q.questionId)
+                            : handlePreview(q.questionId)
+                        }
                         className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                         title="Preview"
                         aria-label={`Preview question ${q.questionId}`}
@@ -795,6 +874,20 @@ export default function DataInsightPage() {
           difficultyOptions={difficultyOptions}
           levelOptions={levelOptions}
           contentDomainOptions={contentDomainOptions}
+        />
+      )}
+
+      {/* Table Analysis Preview Modal */}
+      {showTableAnalysisModal && tableAnalysisEditData && (
+        <TableAnalysisPreviewModal
+          question={tableAnalysisEditData}
+          onClose={() => {
+            setShowTableAnalysisModal(false);
+            setTableAnalysisEditData(null);
+          }}
+          onUpdate={handleTableAnalysisUpdate}
+          API_URL={API_URL}
+          showSnackbar={showSnackbar}
         />
       )}
     </div>

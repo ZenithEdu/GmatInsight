@@ -4,12 +4,10 @@ import { FileText, X, ChevronRight } from "lucide-react";
 export default function QuestionPreviewModal({
   selectedQuestion,
   closePreview,
-  questions,
   setQuestions,
   getEndpoint,
   API_URL,
   showSnackbar,
-  fetchQuestions,
   difficultyOptions,
   levelOptions,
   contentDomainOptions,

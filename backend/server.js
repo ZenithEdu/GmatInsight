@@ -9,6 +9,7 @@ const assessmentRoutes = require('./routes/assessmentRoutes');
 const quantVaultRoutes = require('./routes/quantVaultRoutes');
 const twoPartAnalysisRoutes = require('./routes/twoPartAnalysisRoutes');
 const graphicsInterpretationRoutes = require('./routes/graphicsInterpretationRoutes');
+const tableAnalysisRoutes = require('./routes/tableAnalysisRoutes');
 
 // Admin auth routes
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
@@ -43,6 +44,7 @@ app.use('/api/assessments', assessmentRoutes);
 app.use('/api/dataSufficiency', dataSufficiencyRoutes);
 app.use('/api/twoPartAnalysis', twoPartAnalysisRoutes);
 app.use('/api/graphicsInterpretation', graphicsInterpretationRoutes);
+app.use('/api/tableAnalysis', tableAnalysisRoutes);
 
 
 // admin auth routes
