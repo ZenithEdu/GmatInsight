@@ -601,15 +601,16 @@ const TwoPartAnalysisStructure = () => {
   const showSnackbar = useSnackbar();
   const navigate = useNavigate();
 
-  const topicsList = [
+    const topicsList = [
     "Arithmetic",
-    "Algebra",
-    "Geometry",
     "Statistics",
-    "Probability",
-    "Word Problems",
-    "Data Interpretation",
-  ];
+    "Overlapping Sets",
+    "Speed distance and Time",
+    "Work rate",
+    "Profit and Loss",
+    "Ratios and Mixtures",
+    "Logic Based",
+    ];
 
   const levels = ["L1", "L2", "L3", "L4", "L5"];
   const validContentDomains = ["Math", "Non-Math"]; // Added

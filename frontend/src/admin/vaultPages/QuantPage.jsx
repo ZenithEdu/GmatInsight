@@ -218,6 +218,7 @@ export default function QuantPage() {
           difficulty: editedQuestion.difficulty,
           level: editedQuestion.level,
           explanation: editedQuestion.explanation || "",
+          type: editedQuestion.type || "",
         }),
       }
     )
@@ -428,7 +429,7 @@ export default function QuantPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Filter Panel */}
         {showFilters && (
           <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-4 mb-6">
@@ -530,7 +531,8 @@ export default function QuantPage() {
         {/* Questions Table */}
         
         <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden">
-          <div className="hidden md:grid grid-cols-[80px_80px_140px_120px_100px_120px_180px_100px_120px] bg-blue-600 px-4 py-3 border-b border-blue-200 text-sm font-semibold text-white sticky top-0 z-10">
+          {/* Type moved next to Topic; adjusted column order and template widths */}
+          <div className="hidden md:grid grid-cols-[80px_80px_140px_120px_100px_120px_100px_180px_100px_120px] bg-blue-600 px-4 py-3 border-b border-blue-200 text-sm font-semibold text-white sticky top-0 z-10">
             <div className="text-center">S.No</div>
             <div
               className="cursor-pointer flex items-center justify-center"
@@ -549,6 +551,12 @@ export default function QuantPage() {
               onClick={() => handleSort("topic")}
             >
               Topic {getSortIcon("topic")}
+            </div>
+            <div
+              className="cursor-pointer flex items-center justify-left"
+              onClick={() => handleSort("type")}
+            >
+              Type {getSortIcon("type")}
             </div>
             <div
               className="cursor-pointer flex items-center justify-center"
@@ -580,7 +588,7 @@ export default function QuantPage() {
             sortedQuestions.map((q, index) => (
               <div
                 key={q.questionId}
-                className="grid grid-cols-1 md:grid-cols-[80px_80px_140px_120px_100px_120px_180px_100px_120px] px-4 py-3 border-b border-blue-200 hover:bg-blue-50 transition-colors text-sm"
+                className="grid grid-cols-1 md:grid-cols-[80px_80px_140px_120px_100px_120px_100px_180px_100px_120px] px-4 py-3 border-b border-blue-200 hover:bg-blue-50 transition-colors text-sm"
               >
                 <div className="flex items-center justify-center py-2 md:py-0">
                   <span className="font-medium text-blue-100 bg-blue-600 w-8 h-8 flex items-center justify-center rounded">
@@ -606,6 +614,9 @@ export default function QuantPage() {
                   >
                     {q.topic || "N/A"}
                   </span>
+                </div>
+                <div className="py-2 md:py-0 flex items-center justify-left">
+                  {q.type || "N/A"}
                 </div>
                 <div className="py-2 md:py-0 flex items-center justify-center">
                   <span
@@ -707,7 +718,8 @@ export default function QuantPage() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4">
               {/* Metadata Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+              {/* Type moved to sit next to Topic; keep same columns */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
                 <div className="bg-blue-50 p-3 rounded-md">
                   <label className="text-xs font-medium text-blue-600 mb-1 block">
                     Set ID
@@ -807,6 +819,24 @@ export default function QuantPage() {
 
                 <div className="bg-blue-50 p-3 rounded-md">
                   <label className="text-xs font-medium text-blue-600 mb-1 block">
+                    Type
+                  </label>
+                  {isEditing ? (
+                    <input
+                      className="w-full px-2 py-1 border border-blue-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={editedQuestion.type || ""}
+                      onChange={(e) => handleEditChange("type", e.target.value)}
+                      placeholder="e.g. mcq, integer, etc."
+                    />
+                  ) : (
+                    <span className="text-xs text-blue-700 capitalize">
+                      {selectedQuestion.type || "N/A"}
+                    </span>
+                  )}
+                </div>
+
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <label className="text-xs font-medium text-blue-600 mb-1 block">
                     Level
                   </label>
                   {isEditing ? (
@@ -889,10 +919,11 @@ export default function QuantPage() {
                           rows={3}
                         />
                       ) : (
-                        <p className="text-gray-800 text-sm leading-relaxed">
+                        /* Preserve spaces/newlines like explanation does */
+                        <div className="text-gray-800 text-sm leading-relaxed whitespace-pre-line">
                           {renderTextWithLatex(selectedQuestion.question) ||
                             "No question available."}
-                        </p>
+                        </div>
                       )}
                       {formErrors.question && (
                         <p className="text-red-500 text-xs mt-1">

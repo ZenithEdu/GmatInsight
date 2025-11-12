@@ -112,6 +112,18 @@ export default function DataInsightPage() {
         topic: q.topic || "",
         difficulty: q.difficulty || "",
         level: q.level || "",
+        statementsPrompt: q.statementsPrompt || "", // include prompt from backend
+        // Ensure statements have stable ids for preview/editor and defaults applied
+        statements: (q.statements || []).map((s, idx) => ({
+          id: s.id || s._id || idx + 1,
+          text: s.text || "",
+          answer: s.answer || null,
+        })),
+        // Ensure statementTypes exist so UI can render columns
+        statementTypes:
+          Array.isArray(q.statementTypes) && q.statementTypes.length
+            ? q.statementTypes
+            : ["Yes", "No"],
       }));
       setQuestions([
         ...dsQuestions,
@@ -433,7 +445,7 @@ export default function DataInsightPage() {
         const res = await fetch(
           `${API_URL}/${endpoint}/${updatedQuestion.questionId}`,
           {
-            method: "PUT",
+            method: "PATCH", // Changed to PATCH to match backend route
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(updatedQuestion),
           }

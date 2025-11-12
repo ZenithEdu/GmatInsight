@@ -37,8 +37,11 @@ const GMATTableAnalyzer = () => {
     rows: [],
     sortBy: "",
     explanation: "",
+    statementsPrompt: "", // added: prompt shown above statements in preview
   });
 
+  // initial states: remove any mention of correctAnswer
+  const [statementTypes, setStatementTypes] = useState(["Yes", "No"]);
   const [statements, setStatements] = useState([
     { id: 1, text: "", answer: null },
   ]);
@@ -56,13 +59,8 @@ const GMATTableAnalyzer = () => {
   const navigate = useNavigate();
 
   const topicsList = [
-    "Arithmetic",
-    "Algebra",
-    "Geometry",
-    "Statistics",
-    "Probability",
-    "Word Problems",
-    "Data Interpretation",
+    "Short Table",
+    "Large Table",
   ];
 
   const levels = ["L1", "L2", "L3", "L4", "L5"];
@@ -98,6 +96,8 @@ const GMATTableAnalyzer = () => {
     sortBy: "Item",
     explanation:
       "The analysis shows that items in the upper left quadrant generally had higher mean eye times and infoclick percentages. The sales rank indicates that item D performed best despite not having the highest eye time or infoclick percentage.",
+    statementsPrompt:
+      "For each of the following statements about this data, select the appropriate response from the available types.", // added to sample
   };
 
   const sampleStatements = [
@@ -106,7 +106,9 @@ const GMATTableAnalyzer = () => {
     "Mean eye time was greatest for the item having the greatest infoclick percentage and least for the item having the least infoclick percentage.",
   ];
 
-  const validateForm = () => {
+  // validateForm optionally requires admin to mark correct response types
+  const validateForm = (opts = { requireCorrectAnswers: false }) => {
+    // removed usage of requireCorrectAnswers: correctAnswer checks removed
     const errors = {};
     if (!tableData.topic) errors.topic = "Topic is required";
     if (!tableData.difficulty) errors.difficulty = "Difficulty is required";
@@ -123,6 +125,7 @@ const GMATTableAnalyzer = () => {
     statements.forEach((stmt, index) => {
       if (!stmt.text.trim())
         errors[`statement${index}`] = "Statement text is required";
+      // removed requireCorrectAnswers conditional checks for correctAnswer
     });
 
     return errors;
@@ -152,6 +155,7 @@ const GMATTableAnalyzer = () => {
       rows: [],
       sortBy: "",
       explanation: "",
+      statementsPrompt: "", // reset prompt
     });
     setStatements([{ id: 1, text: "", answer: null }]);
     setFileUploaded(false);
@@ -183,6 +187,7 @@ const GMATTableAnalyzer = () => {
             : 1,
         text: "",
         answer: null,
+        // removed correctAnswer
       },
     ]);
   };
@@ -204,6 +209,34 @@ const GMATTableAnalyzer = () => {
     setStatements(
       statements.map((stmt) => (stmt.id === id ? { ...stmt, answer } : stmt))
     );
+  };
+
+  // Set or toggle the admin-marked correct type for a statement
+  const setCorrectType = (id, type) => {
+    // remove function or make no-op; we'll remove UI that calls this
+    // keep as no-op to avoid runtime errors if called unexpectedly
+    return;
+  };
+
+  // Manage statementTypes (add / remove / rename)
+  const addStatementType = () => {
+    setStatementTypes((prev) => [...prev, `Type ${prev.length + 1}`]);
+  };
+  const removeStatementType = (idx) => {
+    if (statementTypes.length <= 2) {
+      showSnackbar("At least two response types required", { type: "warning" });
+      return;
+    }
+    const removed = statementTypes[idx];
+    setStatementTypes((prev) => prev.filter((_, i) => i !== idx));
+    // If any statement had the removed type as answer, clear it
+    setStatements((prev) =>
+      prev.map((s) => (s.answer === removed ? { ...s, answer: null } : s))
+    );
+    // removed clearing of correctAnswer references
+  };
+  const renameStatementType = (idx, value) => {
+    setStatementTypes((prev) => prev.map((t, i) => (i === idx ? value : t)));
   };
 
   const addTableRow = () => {
@@ -333,7 +366,8 @@ const GMATTableAnalyzer = () => {
   };
 
   const handleSaveQuestion = async () => {
-    const errors = validateForm();
+    // enforce correctAnswer presence when saving
+    const errors = validateForm({ requireCorrectAnswers: true });
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       setShowAllErrors(true);
@@ -370,9 +404,12 @@ const GMATTableAnalyzer = () => {
         rows: tableData.rows,
         sortBy: tableData.sortBy,
         explanation: tableData.explanation,
+        statementsPrompt: tableData.statementsPrompt, // added to payload
+        // include custom statementTypes and per-statement answers (no correctAnswer)
+        statementTypes: statementTypes,
         statements: statements.map((s) => ({
           text: s.text,
-          answer: s.answer,
+          answer: s.answer || null, // optional selection
         })),
         contentDomain: domain,
         metadata: {
@@ -396,15 +433,21 @@ const GMATTableAnalyzer = () => {
   };
 
   const handlePreview = () => {
-    const errors = validateForm();
+    // allow preview even if admin hasn't marked correct types yet
+    const errors = validateForm({ requireCorrectAnswers: false });
+    // keep validation for other required fields (topic, table, etc.)
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       setShowAllErrors(true);
-      showSnackbar("Please fix all errors before previewing", {
-        type: "error",
-      });
+      showSnackbar("Please fix all errors before previewing", { type: "error" });
       return;
     }
+    // clear any "missing-correct" errors so preview opens without blocking
+    const cleaned = Object.keys(formErrors).reduce((acc, k) => {
+      if (!k.startsWith("statementCorrect")) acc[k] = formErrors[k];
+      return acc;
+    }, {});
+    setFormErrors(cleaned);
     setCurrentView("preview");
   };
 
@@ -415,6 +458,7 @@ const GMATTableAnalyzer = () => {
         statements={statements}
         setStatements={setStatements}
         onBack={() => setCurrentView("input")}
+        statementTypes={statementTypes}
       />
     );
   }
@@ -868,6 +912,55 @@ const GMATTableAnalyzer = () => {
             </div>
 
             <div className="space-y-6">
+              {/* Editable prompt shown above statements in preview */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Statements Prompt
+                </label>
+                <input
+                  type="text"
+                  value={tableData.statementsPrompt}
+                  onChange={(e) => handleInputChange("statementsPrompt", e.target.value)}
+                  placeholder="Prompt shown above statements in preview"
+                  className="w-full p-2 border rounded text-sm"
+                />
+              </div>
+               {/* New UI: editable statement response type headers */}
+               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                 <div className="flex items-center justify-between mb-3">
+                   <h3 className="text-sm font-semibold">Response Types for Statements</h3>
+                   <div className="flex gap-2">
+                     <button
+                       onClick={addStatementType}
+                       className="text-sm px-3 py-1 bg-emerald-600 text-white rounded"
+                       title="Add response type"
+                     >
+                       Add Type
+                     </button>
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   {statementTypes.map((type, idx) => (
+                     <div key={idx} className="flex items-center gap-2">
+                       <input
+                         type="text"
+                         value={type}
+                         onChange={(e) => renameStatementType(idx, e.target.value)}
+                         className="flex-1 p-2 border rounded text-sm"
+                         aria-label={`Edit response type ${idx + 1}`}
+                       />
+                       <button
+                         onClick={() => removeStatementType(idx)}
+                         className="p-2 text-red-500 hover:bg-red-50 rounded"
+                         title="Remove type"
+                       >
+                         <Trash2 className="w-4 h-4" />
+                       </button>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+
               <div className="space-y-4">
                 {statements.map((statement, index) => (
                   <div
@@ -894,33 +987,36 @@ const GMATTableAnalyzer = () => {
                           }`}
                           placeholder={`Enter statement ${index + 1}...`}
                         />
-                        <div className="mt-3 flex space-x-4">
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              name={`statement-${statement.id}`}
-                              checked={statement.answer === "yes"}
-                              onChange={() => setAnswer(statement.id, "yes")}
-                              className="w-4 h-4 cursor-pointer focus:ring-purple-300 text-purple-600"
-                            />
-                            <span className="text-sm font-medium text-gray-700">
-                              True
-                            </span>
-                          </label>
-                          <label className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              name={`statement-${statement.id}`}
-                              checked={statement.answer === "no"}
-                              onChange={() => setAnswer(statement.id, "no")}
-                              className="w-4 h-4 cursor-pointer focus:ring-purple-300 text-purple-600"
-                            />
-                            <span className="text-sm font-medium text-gray-700">
-                              False
-                            </span>
-                          </label>
+                        {/* Show validation for missing correct answer */}
+                        {formErrors[`statementCorrect${index}`] && (
+                          <p className="text-red-500 text-sm mt-2 flex items-center">
+                            <AlertCircle className="w-4 h-4 mr-1" />
+                            {formErrors[`statementCorrect${index}`]}
+                          </p>
+                        )}
+                        {/* New: choose a response type per statement from statementTypes */}
+                        <div className="mt-3">
+                          <div className="flex gap-3 flex-wrap items-center">
+                            {statementTypes.map((type, tIdx) => (
+                              <div key={tIdx} className="flex items-center gap-2">
+                                <label className="flex items-center gap-2">
+                                  <input
+                                    type="radio"
+                                    name={`statement-${statement.id}`}
+                                    checked={statement.answer === type}
+                                    onChange={() => setAnswer(statement.id, type)}
+                                    className="w-4 h-4 cursor-pointer focus:ring-purple-300 text-purple-600"
+                                  />
+                                  <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                    {type}
+                                  </span>
+                                </label>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
+
                       <button
                         onClick={() => removeStatement(statement.id)}
                         disabled={statements.length <= 1}
@@ -933,6 +1029,7 @@ const GMATTableAnalyzer = () => {
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
+
                     {formErrors[`statement${index}`] && (
                       <p className="text-red-500 text-sm mt-2 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />

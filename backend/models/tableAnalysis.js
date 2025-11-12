@@ -11,10 +11,19 @@ const TableAnalysisSchema = new mongoose.Schema({
   rows: [[{ type: String, required: true }]],
   sortBy: { type: String },
   explanation: { type: String },
+
+  // New: prompt/intro text shown above the statements in preview
+  statementsPrompt: { type: String },
+
+  // New: list of allowed response types for statements (e.g. Yes, No, Must be true...)
+  statementTypes: [{ type: String }],
+
   statements: [
     {
       text: { type: String, required: true },
-      answer: { type: String }
+      // 'answer' can represent an author-selected / preview selection (optional)
+      answer: { type: String },
+      // removed correctAnswer - no longer stored at statement level
     }
   ],
   contentDomain: { type: String, required: true },

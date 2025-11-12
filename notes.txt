@@ -8,3 +8,7 @@ table preview me sab data nhi aa raha.
 maybe snackbar upper niche dono taraf aa raha hai. 
 table pages me jab data fetch fail ho jaye tab ui kuch or dikhao.
 
+
+use space and enter same as it is.
+
+jaise question preview modal me meta datas ke liye sab options available hai waise hi table preview modal me bhi kardo hardcoded somethings which is needed.

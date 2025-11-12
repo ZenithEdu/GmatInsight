@@ -45,13 +45,13 @@ const GraphicsInterpretationStructure = () => {
 
   const [questionData, setQuestionData] = useState(initialQuestionData);
   const topicsList = [
-    "Arithmetic",
-    "Algebra",
-    "Geometry",
-    "Statistics",
-    "Probability",
-    "Word Problems",
-    "Data Interpretation",
+    "Pie Chart",
+    "Bar Graph",
+    "Line Graph",
+    "Spider Chart",
+    "Flow Chart",
+    "Miscellaneous",
+    "Logic Based"
   ];
   const levels = ["L1", "L2", "L3", "L4", "L5"];
   const [setId, setSetId] = useState("");

@@ -40,7 +40,7 @@ const STANDARD_OPTIONS = [
   "Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient.",
   "BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient.",
   "EACH statement ALONE is sufficient.",
-  "", // Optional 5th option
+  "NEITHER statement alone nor both statements together are sufficient.",
 ];
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E"];
@@ -514,13 +514,14 @@ const DataSufficiencyUploadPage = () => {
 
   const topicsList = [
     "Arithmetic",
-    "Algebra",
-    "Geometry",
     "Statistics",
-    "Probability",
-    "Word Problems",
-    "Data Interpretation",
-  ];
+    "Overlapping Sets",
+    "Speed distance and Time",
+    "Work rate",
+    "Profit and Loss",
+    "Ratios and Mixtures",
+    "Logic Based",
+    ];
 
   const levels = ["L1", "L2", "L3", "L4", "L5"];
   const validContentDomains = ["Math", "Non-Math"];

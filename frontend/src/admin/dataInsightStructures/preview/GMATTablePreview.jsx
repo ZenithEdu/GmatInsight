@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { Check } from "lucide-react";
 
-const GMATTablePreview = ({ tableData, statements, setStatements, onBack }) => {
+const GMATTablePreview = ({ tableData, statements, setStatements, onBack, statementTypes = ["Yes","No"] }) => {
   const [sortBy, setSortBy] = useState(tableData.sortBy || tableData.headers[0] || "");
 
   // Sorting function
@@ -36,9 +37,10 @@ const GMATTablePreview = ({ tableData, statements, setStatements, onBack }) => {
     });
   };
 
-  const setAnswer = (id, answer) => {
+  // Set chosen response type (string) for a statement
+  const setAnswer = (id, chosenType) => {
     setStatements(prevStatements =>
-      prevStatements.map((stmt) => (stmt.id === id ? { ...stmt, answer } : stmt))
+      prevStatements.map((stmt) => (stmt.id === id ? { ...stmt, answer: chosenType } : stmt))
     );
   };
 
@@ -104,23 +106,23 @@ const GMATTablePreview = ({ tableData, statements, setStatements, onBack }) => {
 
         {/* Right Panel - Statements */}
         <div className="space-y-4">
+          {/* Use the prompt from tableData, fallback to a short default if absent */}
           <p className="text-sm font-medium">
-            For each of the following statements about this data, select{" "}
-            <strong>Yes</strong> if the statement can be inferred from the
-            given information. Otherwise, select <strong>No</strong>.
+            {tableData.statementsPrompt || "For each of the following statements about this data, select the appropriate response from the available types."}
           </p>
 
-          <div className="border border-gray-300 rounded">
+          <div className="border border-gray-300 rounded overflow-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="w-16 text-center py-2 border-r border-gray-300 text-sm font-medium">
-                    Yes
-                  </th>
-                  <th className="w-16 text-center py-2 border-r border-gray-300 text-sm font-medium">
-                    No
-                  </th>
-                  <th className="px-3 py-2 text-left text-sm font-medium"></th>
+                  {statementTypes.map((type, idx) => (
+                    <th
+                      key={idx}
+                      className="text-center py-2 border-r border-gray-300 text-sm font-medium px-2"
+                    >
+                      {type}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -129,25 +131,30 @@ const GMATTablePreview = ({ tableData, statements, setStatements, onBack }) => {
                     key={statement.id}
                     className="border-t border-gray-200 hover:bg-gray-50"
                   >
-                    <td className="text-center py-3 border-r border-gray-300">
-                      <input
-                        type="radio"
-                        name={`statement-${statement.id}`}
-                        checked={statement.answer === "yes"}
-                        onChange={() => setAnswer(statement.id, "yes")}
-                        className="w-4 h-4 cursor-pointer focus:ring-blue-300"
-                      />
+                    {statementTypes.map((type, tIdx) => {
+                      return (
+                        <td
+                          key={tIdx}
+                          className={`text-center py-3 border-r border-gray-300`}
+                        >
+                          <div className="flex items-center justify-center space-x-1">
+                            <input
+                              type="radio"
+                              name={`statement-${statement.id}`}
+                              checked={statement.answer === type}
+                              onChange={() => setAnswer(statement.id, type)}
+                              className="w-4 h-4 cursor-pointer focus:ring-blue-300"
+                              aria-label={`${type} for statement ${statement.id}`}
+                            />
+                          </div>
+                        </td>
+                      );
+                    })}
+                    <td className="px-3 py-3 text-sm text-left">
+                      <div className="flex items-center justify-between">
+                        <div>{statement.text}</div>
+                      </div>
                     </td>
-                    <td className="text-center py-3 border-r border-gray-300">
-                      <input
-                        type="radio"
-                        name={`statement-${statement.id}`}
-                        checked={statement.answer === "no"}
-                        onChange={() => setAnswer(statement.id, "no")}
-                        className="w-4 h-4 cursor-pointer focus:ring-blue-300"
-                      />
-                    </td>
-                    <td className="px-3 py-3 text-sm">{statement.text}</td>
                   </tr>
                 ))}
               </tbody>

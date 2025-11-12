@@ -601,7 +601,7 @@ export default function QuestionPreviewModal({
             <div className="space-y-4">
               {/* Context Text (Data Sufficiency, Two-part Analysis) */}
               {(selectedQuestion.type === "Data Sufficiency" || selectedQuestion.type === "Two-part Analysis") && (
-                <div className="bg-blue-50 rounded-lg border border-blue-200">
+                <div className="bg-blue-50 rounded-lg border border-blue-200 whitespace-pre-line">
                   <div className="p-3">
                     <h4 className="font-medium text-blue-800 mb-2">
                       Context Text
@@ -1263,7 +1263,7 @@ export default function QuestionPreviewModal({
                       rows={4}
                     />
                   ) : (
-                    <p className="text-gray-800 text-sm leading-relaxed">
+                    <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-line">
                       {selectedQuestion.explanation || "No explanation provided."}
                     </p>
                   )}

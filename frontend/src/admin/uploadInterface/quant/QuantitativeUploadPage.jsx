@@ -30,7 +30,6 @@ import LatexGuide from "../../components/LatexGuide";
 import QuantBulkUpload from "./QuantBulkUpload"; // Import the new component
 import { useSnackbar } from "../../../components/SnackbarProvider";
 
-
 const QuantitativeUploadPage = () => {
   const [activeTab, setActiveTab] = useState("single");
   const [singleQuestion, setSingleQuestion] = useState({
@@ -235,24 +234,60 @@ const QuantitativeUploadPage = () => {
     ...gmatEquations,
   ];
 
-  const topicsList = [
-    "Algebra",
-    "Geometry",
-    "Arithmetic",
-    "Probability",
-    "Statistics",
-    "Profit & Loss",
-    "Time & Work",
-    "Speed & Distance",
-    "Permutation & Combination",
-    "Number System",
-  ];
+const topicsList = [
+  "Algebra",
+  "Arithmetic",
+  "Exponents",
+  "Functions",
+  "Inequality",
+  "Number Properties",
+  "Overlapping Sets",
+  "Permutation and Combination",
+  "Probability",
+  "Ratios and Mixtures",
+  "Speed distance and Time",
+  "Statistics",
+  "Work Rate",
+];
 
-  const questionTypes = [
-    "Problem Solving",
-    "Data Sufficiency",
-    "Quantitative Comparison",
-  ];
+const questionTypes = [
+  "2-sets",
+  "3-sets",
+  "Algebraic Exponents",
+  "Algebraic Inequality",
+  "Algebraic simplification",
+  "Arrangement",
+  "Arithmetic Exponents",
+  "Circular Motion",
+  "Collective rate problems",
+  "Counting Principles",
+  "Cyclicity",
+  "Factors",
+  "Fractions",
+  "Functions",
+  "Individual Rate problem",
+  "Interest problem",
+  "LCM/HCF",
+  "Linear Movement",
+  "Mean",
+  "Median",
+  "Mixtures",
+  "Miscellaneous",
+  "Mode",
+  "Modulus",
+  "Prime factorization",
+  "Probability",
+  "Profit and Loss",
+  "Range",
+  "Ratios",
+  "Relative Speed",
+  "Remainders",
+  "Replacement",
+  "Selection",
+  "Standard Deviation",
+  "Word Problem",
+];
+
 
   const levels = ["L1", "L2", "L3", "L4", "L5"];
 
@@ -447,10 +482,10 @@ const QuantitativeUploadPage = () => {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-            <h1 className="text-2xl font-bold text-blue-800 flex items-center">
-              <BarChart3 className="w-6 h-6 text-blue-600 mr-2" />
-              Quantitative Vault
-            </h1>
+          <h1 className="text-2xl font-bold text-blue-800 flex items-center">
+            <BarChart3 className="w-6 h-6 text-blue-600 mr-2" />
+            Quantitative Vault
+          </h1>
         </div>
         {!showGuide && (
           <button
@@ -677,7 +712,6 @@ const QuantitativeUploadPage = () => {
                         Need help with equations?
                       </button>
                     )}
-                    
                   </div>
 
                   <div className="relative">
@@ -710,7 +744,7 @@ const QuantitativeUploadPage = () => {
                       <div className="text-sm font-medium text-gray-700 mb-2">
                         Preview:
                       </div>
-                      <div className="text-sm leading-relaxed">
+                      <div className="text-sm leading-relaxed whitespace-pre-line">
                         {renderTextWithLatex(singleQuestion.question)}
                       </div>
                     </div>
@@ -749,7 +783,7 @@ const QuantitativeUploadPage = () => {
                           />
                         </div>
                         {option && (
-                          <div className="mt-2 ml-11 p-2 bg-gray-50 rounded text-sm">
+                          <div className="mt-2 ml-11 p-2 bg-gray-50 rounded text-sm whitespace-pre-line">
                             <span className="text-gray-600">Preview: </span>
                             {renderTextWithLatex(option)}
                           </div>
@@ -805,7 +839,7 @@ const QuantitativeUploadPage = () => {
                       <div className="text-sm font-medium text-gray-700 mb-1">
                         Explanation Preview:
                       </div>
-                      <div className="text-sm">
+                      <div className="text-sm whitespace-pre-line">
                         {renderTextWithLatex(singleQuestion.explanation)}
                       </div>
                     </div>
@@ -826,105 +860,109 @@ const QuantitativeUploadPage = () => {
           </div>
 
           {/* Right Side: Quick Equations */}
-<div className="fixed z-10 bg-white rounded-2xl shadow-xl p-4 md:p-5 h-full-screen top-16 sm:top-20 md:top-24 right-2 sm:right-4 md:right-8 w-[95%] sm:w-80">
-  {!activeField && showFieldSelectionHint ? (
-    <div className="h-full flex flex-col items-center justify-center text-center p-4">
-      <div className="bg-blue-50 p-4 rounded-lg mb-4">
-        <HelpCircle className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-        <h3 className="font-bold text-blue-800 mb-2">How to use equations</h3>
-        <p className="text-sm text-blue-700">
-          First select any field where you want to add an equation - question, option, or explanation. Then you can choose from these quick equations.
-        </p>
-      </div>
-      <button 
-        onClick={() => setShowFieldSelectionHint(false)}
-        className="text-grey-900 text-sm hover:underline cursor-pointer"
-      >
-        Got it, don't show again
-      </button>
-    </div>
-  ) : activeField ? (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
-          <Calculator className="w-5 h-5" />
-          Quick Equations
-        </h3>
-        <button
-          onClick={() => setShowCustomLatexPopup(true)}
-          className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-          title="Custom LaTeX"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div className="mb-4 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200 text-sm font-medium text-blue-800">
-        Active:{" "}
-        {activeField === "question"
-          ? "Question"
-          : activeField.startsWith("option")
-          ? `Option ${activeField.replace("option", "")}`
-          : activeField === "explanation"
-          ? "Explanation"
-          : "Field"}
-      </div>
-
-      <div className="space-y-2 h-[20rem] overflow-y-auto pr-2">
-        {allEquations
-          .slice(0, showMoreEquations ? allEquations.length : 8)
-          .map((eq, index) => (
-            <button
-              key={index}
-              onClick={() => addEquationToField(eq.latex)}
-              className="w-full p-2.5 text-left border border-gray-200 rounded-md hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-start gap-2.5"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-gray-800 text-sm truncate">
-                  {eq.name}
+          <div className="fixed z-10 bg-white rounded-2xl shadow-xl p-4 md:p-5 h-full-screen top-16 sm:top-20 md:top-24 right-2 sm:right-4 md:right-8 w-[95%] sm:w-80">
+            {!activeField && showFieldSelectionHint ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                  <HelpCircle className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                  <h3 className="font-bold text-blue-800 mb-2">
+                    How to use equations
+                  </h3>
+                  <p className="text-sm text-blue-700">
+                    First select any field where you want to add an equation -
+                    question, option, or explanation. Then you can choose from
+                    these quick equations.
+                  </p>
                 </div>
-                <div className="text-xs font-mono text-gray-600 break-all">
-                  <InlineMath math={eq.latex} />
-                </div>
+                <button
+                  onClick={() => setShowFieldSelectionHint(false)}
+                  className="text-grey-900 text-sm hover:underline cursor-pointer"
+                >
+                  Got it, don't show again
+                </button>
               </div>
-            </button>
-          ))}
-      </div>
+            ) : activeField ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <Calculator className="w-5 h-5" />
+                    Quick Equations
+                  </h3>
+                  <button
+                    onClick={() => setShowCustomLatexPopup(true)}
+                    className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                    title="Custom LaTeX"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
 
-      {allEquations.length > 8 && (
-        <button
-          onClick={() => setShowMoreEquations(!showMoreEquations)}
-          className="w-full flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium py-2 mt-2 border border-gray-200 rounded-md hover:bg-gray-50"
-        >
-          {showMoreEquations ? (
-            <>
-              <ChevronUp className="w-4 h-4" />
-              Show Less
-            </>
-          ) : (
-            <>
-              <ChevronDown className="w-4 h-4" />
-              Show More ({allEquations.length - 8} more)
-            </>
-          )}
-        </button>
-      )}
-    </>
-  ) : (
-    <div className="h-full flex items-center justify-center">
-      <p className="text-gray-500 text-center p-4">
-        Select a field to enable equations
-        <br />
-        <button 
-          onClick={() => setShowFieldSelectionHint(true)}
-          className="text-blue-600 text-sm hover:underline cursor-pointer mt-2"
-        >
-          Show instructions again
-        </button>
-      </p>
-    </div>
-  )}
-</div>
+                <div className="mb-4 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200 text-sm font-medium text-blue-800">
+                  Active:{" "}
+                  {activeField === "question"
+                    ? "Question"
+                    : activeField.startsWith("option")
+                    ? `Option ${activeField.replace("option", "")}`
+                    : activeField === "explanation"
+                    ? "Explanation"
+                    : "Field"}
+                </div>
+
+                <div className="space-y-2 h-[20rem] overflow-y-auto pr-2">
+                  {allEquations
+                    .slice(0, showMoreEquations ? allEquations.length : 8)
+                    .map((eq, index) => (
+                      <button
+                        key={index}
+                        onClick={() => addEquationToField(eq.latex)}
+                        className="w-full p-2.5 text-left border border-gray-200 rounded-md hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-start gap-2.5"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-800 text-sm truncate">
+                            {eq.name}
+                          </div>
+                          <div className="text-xs font-mono text-gray-600 break-all">
+                            <InlineMath math={eq.latex} />
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                </div>
+
+                {allEquations.length > 8 && (
+                  <button
+                    onClick={() => setShowMoreEquations(!showMoreEquations)}
+                    className="w-full flex items-center justify-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium py-2 mt-2 border border-gray-200 rounded-md hover:bg-gray-50"
+                  >
+                    {showMoreEquations ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        Show Less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4" />
+                        Show More ({allEquations.length - 8} more)
+                      </>
+                    )}
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-gray-500 text-center p-4">
+                  Select a field to enable equations
+                  <br />
+                  <button
+                    onClick={() => setShowFieldSelectionHint(true)}
+                    className="text-blue-600 text-sm hover:underline cursor-pointer mt-2"
+                  >
+                    Show instructions again
+                  </button>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {showCustomLatexPopup && (
@@ -959,7 +997,7 @@ const QuantitativeUploadPage = () => {
                   <div className="text-sm font-medium text-gray-700 mb-2">
                     Preview:
                   </div>
-                  <div className="text-sm">
+                  <div className="text-sm whitespace-pre-line">
                     {renderTextWithLatex(`$$${customLatex}$$`)}
                   </div>
                 </div>
