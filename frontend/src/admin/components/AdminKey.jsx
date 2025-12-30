@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Lock, Eye, EyeOff, Shield, CheckCircle, AlertTriangle, Loader2, KeyRound } from "lucide-react";
+import { Lock, Eye, EyeOff, Shield, CheckCircle, Loader2, KeyRound } from "lucide-react";
 import { useSnackbar } from "../../components/SnackbarProvider";
 const API_URL = import.meta.env.VITE_API_URL;
 

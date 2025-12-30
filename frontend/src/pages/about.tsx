@@ -204,7 +204,7 @@ const AboutPage = () => {
 </section>
 
       {/* Our Achievements Section */}
-      <Stats/>
+      {/* <Stats/> */}
 
       {/* What We Do Section */}
       <section 
@@ -299,9 +299,9 @@ const AboutPage = () => {
       </section>
 
       {/* Our Founders Section */}
-      <FoundersComponent/>
+      {/* <FoundersComponent/> */}
 
-      <Footer/>
+      {/* <Footer/> */}
     </div>
   );
 };

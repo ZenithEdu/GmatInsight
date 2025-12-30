@@ -258,7 +258,6 @@ const VerbalReasoningStructure = () => {
       "type",
       "topic",
       "question",
-      "passage",
       "options",
       "difficulty",
       "level",
@@ -278,6 +277,11 @@ const VerbalReasoningStructure = () => {
           );
           return;
         }
+      }
+      // For double layout, require passage
+      if (q.layout === "double" && (!q.passage || q.passage.toString().trim() === "")) {
+        setUploadError(`Question ${i + 1} requires a passage for double layout.`);
+        return;
       }
       // Also check correctAnswer index
       if (
@@ -466,58 +470,49 @@ const VerbalReasoningStructure = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <div className="prose max-w-none">
-                    <p className="text-sm leading-relaxed whitespace-pre-line">
-                      {currentQuestion.passage}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h3 className="text-sm text-gray-900">
-                    {currentQuestion.question}
-                  </h3>
-                  <div className="space-y-3">
-                    {currentQuestion.options.map((option, index) => (
-                      <label
-                        key={index}
-                        className={`flex items-start space-x-3 cursor-pointer transition-colors ${
+              <div className="space-y-4">
+                <h3 className="text-sm text-gray-900">
+                  {currentQuestion.question}
+                </h3>
+                <div className="space-y-3">
+                  {currentQuestion.options.map((option, index) => (
+                    <label
+                      key={index}
+                      className={`flex items-start space-x-3 cursor-pointer transition-colors ${
+                        selectedAnswers[currentQuestion.id] === index
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={`question-${currentQuestion.id}`}
+                        value={index}
+                        checked={
                           selectedAnswers[currentQuestion.id] === index
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-300 hover:border-gray-400"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${currentQuestion.id}`}
-                          value={index}
-                          checked={
-                            selectedAnswers[currentQuestion.id] === index
-                          }
-                          onChange={() =>
-                            handleAnswerSelect(currentQuestion.id, index)
-                          }
-                          className="mt-1"
-                        />
-                        <span className="text-sm">{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {selectedAnswers[currentQuestion.id] !== undefined &&
-                    selectedAnswers[currentQuestion.id] !==
-                      currentQuestion.correctAnswer && (
-                      <div className="bg-red-50 p-4 rounded-lg">
-                        <h4 className="font-medium text-red-800 mb-2">
-                          Incorrect Answer
-                        </h4>
-                        <p className="text-red-700 text-sm">
-                          The correct answer is option{" "}
-                          {currentQuestion.correctAnswer + 1}.
-                        </p>
-                      </div>
-                    )}
+                        }
+                        onChange={() =>
+                          handleAnswerSelect(currentQuestion.id, index)
+                        }
+                        className="mt-1"
+                      />
+                      <span className="text-sm">{option}</span>
+                    </label>
+                  ))}
                 </div>
+                {selectedAnswers[currentQuestion.id] !== undefined &&
+                  selectedAnswers[currentQuestion.id] !==
+                    currentQuestion.correctAnswer && (
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-red-800 mb-2">
+                        Incorrect Answer
+                      </h4>
+                      <p className="text-red-700 text-sm">
+                        The correct answer is option{" "}
+                        {currentQuestion.correctAnswer + 1}.
+                      </p>
+                    </div>
+                  )}
               </div>
             )}
 
@@ -834,7 +829,7 @@ const VerbalReasoningStructure = () => {
                     {/* Passage */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Passage
+                        Passage <span className="text-gray-400">(required for double layout)</span>
                       </label>
                       <textarea
                         value={currentQuestion.passage}

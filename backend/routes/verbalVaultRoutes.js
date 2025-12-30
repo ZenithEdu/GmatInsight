@@ -50,6 +50,11 @@ router.post('/verbalVaultQuestions', async (req, res) => {
         throw new Error(`Question ${idx + 1} must have at least 2 non-empty options.`);
       }
 
+      // For double layout, require passage
+      if (q.layout === "double" && (!q.passage || q.passage.toString().trim() === "")) {
+        throw new Error(`Question ${idx + 1} requires a passage for double layout.`);
+      }
+
       // Ensure answer is present and valid
       let answer = q.answer;
       if (!answer || !options.includes(answer)) {

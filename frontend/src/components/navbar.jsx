@@ -10,7 +10,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isTransparentRoute = ['/', '/about', '/contact', '/testimonials', '/knowgmat'].includes(location.pathname);
+  const isTransparentRoute = ['/', '/about', '/contact', '/testimonials', '/full-length-test', '/gmat', '/gmat-course-page'].includes(location.pathname);
 
   useEffect(() => {
     if (!isTransparentRoute) {
@@ -34,7 +34,7 @@ const Navbar = () => {
     { name: 'About', href: '/about' },
     { name: 'Testimonials', href: '/testimonials' },
     { name: 'Courses', hasDropdown: true },
-    { name: 'Full Length Test', href: '/flt' },
+    { name: 'Full Length Test', href: '/full-length-test' },
     { name: 'MBA Admissions', href: '#mba-admissions' },
     { name: 'Contact', href: '/contact' },
   ];

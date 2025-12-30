@@ -1,84 +1,179 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FileText, 
-  HelpCircle, 
-  Sparkles, 
-  ArrowRight, 
+import {
+  FileText,
+  Sparkles,
+  ArrowRight,
   BookOpen,
   Star,
   Users,
   Settings,
-  Menu,
-  X,
   LogOut,
   UserCircle,
   Archive,
-  ClipboardCheck
+  ClipboardCheck,
+  Bell,
+  Menu,
+  X,
+  TrendingUp,
+  Activity,
 } from 'lucide-react';
+import Footer from '../components/footer';
 
-export default function Admin() {
+// Simple Card Components
+const Card = ({ className = '', children }) => (
+  <div className={`rounded-lg border bg-white shadow-sm ${className}`}>
+    {children}
+  </div>
+);
+
+const CardHeader = ({ className = '', children }) => (
+  <div className={`p-6 ${className}`}>
+    {children}
+  </div>
+);
+
+const CardTitle = ({ className = '', children }) => (
+  <h3 className={`text-2xl font-semibold leading-none tracking-tight ${className}`}>
+    {children}
+  </h3>
+);
+
+const CardDescription = ({ className = '', children }) => (
+  <p className={`text-sm text-gray-500 ${className}`}>
+    {children}
+  </p>
+);
+
+const CardContent = ({ className = '', children }) => (
+  <div className={`p-6 pt-0 ${className}`}>
+    {children}
+  </div>
+);
+
+// Simple Button Component
+const Button = ({ className = '', variant = 'default', size = 'default', children, onClick }) => {
+  const baseStyles = 'inline-flex items-center justify-center rounded-md font-medium transition-all focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50';
+  
+  const variants = {
+    default: 'bg-blue-600 text-white hover:bg-blue-700',
+    ghost: 'hover:bg-gray-100 hover:text-gray-900',
+  };
+  
+  const sizes = {
+    default: 'h-10 px-4 py-2',
+    icon: 'h-10 w-10',
+  };
+  
+  return (
+    <button 
+      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+};
+
+// Simple Avatar Component
+const Avatar = ({ className = '', children }) => (
+  <div className={`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full ${className}`}>
+    {children}
+  </div>
+);
+
+const AvatarImage = ({ src, alt = '' }) => (
+  <img src={src} alt={alt} className="aspect-square h-full w-full" />
+);
+
+const AvatarFallback = ({ children }) => (
+  <div className="flex h-full w-full items-center justify-center rounded-full bg-gray-100">
+    {children}
+  </div>
+);
+
+export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Default to open on all screens
   const [activeCategory, setActiveCategory] = useState('content');
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check if welcome banner has been dismissed
+  useEffect(() => {
+    const shown = localStorage.getItem('welcomeBannerShown');
+    setShowWelcomeBanner(!shown);
+  }, []);
+
+  // Page load complete
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
+
+  // Auto-dismiss banner after 5 seconds
+  useEffect(() => {
+    if (showWelcomeBanner && !isLoading) {
+      const timer = setTimeout(() => {
+        dismissWelcomeBanner();
+      }, 5000); // 5 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcomeBanner, isLoading]);
+
+  // Handle banner dismissal
+  const dismissWelcomeBanner = () => {
+    setShowWelcomeBanner(false);
+    localStorage.setItem('welcomeBannerShown', 'true');
+  };
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
-      // On larger screens, keep sidebar open by default, but allow toggle
-      if (!mobile && sidebarOpen === false) {
-        setSidebarOpen(true);
-      }
+      if (!mobile) setIsSidebarOpen(true);
+      else setIsSidebarOpen(false);
     };
 
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close sidebar when clicking on a link on mobile, and handle body overflow
-  useEffect(() => {
-    if (sidebarOpen && isMobile) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-  }, [sidebarOpen, isMobile]);
-
-  // Admin sections data - easily expandable
+  // Admin sections data
   const adminCategories = [
     {
       id: 'content',
-      title: 'Content Management',
+      title: 'Content',
       icon: FileText,
-      description: 'Manage all content types',
-      color: 'blue',
+      description: 'Manage all learning materials',
       items: [
         {
           title: 'Assessment Manager',
-          description: 'Create, update and manage assessments',
+          description: 'Create and manage assessments',
           icon: ClipboardCheck,
           color: 'blue',
           path: '/assessment-manager',
-          features: ['Analytics & insights', 'Performance tracking', 'Customizable parameters']
+          features: ['Analytics', 'Performance', 'Custom Parameters']
         },
         {
           title: 'Question Vault',
-          description: 'Manage question library',
+          description: 'Library of questions & templates',
           icon: Archive,
           color: 'emerald',
           path: '/question-vault',
-          features: ['Smart categorization', 'Difficulty filtering', 'Multiple formats']
+          features: ['Smart Categorization', 'Difficulty Filters', 'Multi-format']
         },
         {
           title: 'Course Creator',
-          description: 'Design and publish courses',
+          description: 'Design comprehensive courses',
           icon: BookOpen,
-          color: 'purple',
+          color: 'violet',
           path: '/course-creator',
-          features: ['Multimedia content', 'Progress tracking', 'Certification']
+          features: ['Multimedia', 'Progress Tracking', 'Certification']
         }
       ]
     },
@@ -86,339 +181,328 @@ export default function Admin() {
       id: 'community',
       title: 'Community',
       icon: Users,
-      description: 'Manage user interactions',
-      color: 'amber',
+      description: 'User interactions & feedback',
       items: [
         {
           title: 'Testimonials',
-          description: 'Manage user testimonials',
+          description: 'Manage user reviews',
           icon: Star,
           color: 'amber',
           path: '/testimonials',
-          features: ['Approve submissions', 'Featured reviews', 'Response management']
+          features: ['Approval Workflow', 'Featured Reviews', 'Responses']
         },
         {
           title: 'User Management',
-          description: 'Administer user accounts',
+          description: 'Administer accounts & roles',
           icon: Users,
           color: 'cyan',
           path: '/user-management',
-          features: ['Role management', 'Activity monitoring', 'Access controls']
+          features: ['Role Control', 'Activity Logs', 'Access Levels']
         },
-
       ]
     },
     {
       id: 'administration',
-      title: 'Administration',
+      title: 'Settings',
       icon: Settings,
-      description: 'Configure application',
-      color: 'indigo',
+      description: 'System configuration',
       items: [
         {
           title: 'Admin Profile',
-          description: 'Update admin information',
+          description: 'Personal settings & security',
           icon: UserCircle,
           color: 'indigo',
           path: '/admin-profile',
-          features: ['Update personal info', 'Change password', 'Manage preferences']
+          features: ['Personal Info', 'Security', 'Preferences']
         },
         {
           title: 'System Settings',
-          description: 'Configure application settings',
+          description: 'Global application config',
           icon: Settings,
-          color: 'violet',
+          color: 'slate',
           path: '/settings',
-          features: ['Appearance', 'Notifications', 'Integration']
+          features: ['Appearance', 'Notifications', 'Integrations']
         },
-        
       ]
     }
   ];
 
-  // Color classes mapping - updated for more professional colorful scheme
-  const colorClasses = {
-    blue: {
-      bg: 'from-blue-500 to-blue-700',
-      iconBg: 'bg-blue-100',
-      button: 'from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800',
-      dot: 'bg-blue-500',
-      text: 'text-blue-600',
-      lightBg: 'bg-blue-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    emerald: {
-      bg: 'from-emerald-500 to-emerald-700',
-      iconBg: 'bg-emerald-100',
-      button: 'from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800',
-      dot: 'bg-emerald-500',
-      text: 'text-emerald-600',
-      lightBg: 'bg-emerald-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    purple: {
-      bg: 'from-purple-500 to-purple-700',
-      iconBg: 'bg-purple-100',
-      button: 'from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800',
-      dot: 'bg-purple-500',
-      text: 'text-purple-600',
-      lightBg: 'bg-purple-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    amber: {
-      bg: 'from-amber-400 to-amber-600',
-      iconBg: 'bg-amber-100',
-      button: 'from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700',
-      dot: 'bg-amber-400',
-      text: 'text-amber-500',
-      lightBg: 'bg-amber-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    cyan: {
-      bg: 'from-cyan-400 to-cyan-600',
-      iconBg: 'bg-cyan-100',
-      button: 'from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700',
-      dot: 'bg-cyan-400',
-      text: 'text-cyan-500',
-      lightBg: 'bg-cyan-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    gray: {
-      bg: 'from-gray-400 to-gray-600',
-      iconBg: 'bg-gray-100',
-      button: 'from-gray-400 to-gray-600 hover:from-gray-500 hover:to-gray-700',
-      dot: 'bg-gray-400',
-      text: 'text-gray-500',
-      lightBg: 'bg-gray-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    indigo: {
-      bg: 'from-indigo-500 to-indigo-700',
-      iconBg: 'bg-indigo-100',
-      button: 'from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800',
-      dot: 'bg-indigo-500',
-      text: 'text-indigo-600',
-      lightBg: 'bg-indigo-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    green: {
-      bg: 'from-green-500 to-green-700',
-      iconBg: 'bg-green-100',
-      button: 'from-green-500 to-green-700 hover:from-green-600 hover:to-green-800',
-      dot: 'bg-green-500',
-      text: 'text-green-600',
-      lightBg: 'bg-green-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    rose: {
-      bg: 'from-rose-400 to-rose-600',
-      iconBg: 'bg-rose-100',
-      button: 'from-rose-400 to-rose-600 hover:from-rose-500 hover:to-rose-700',
-      dot: 'bg-rose-400',
-      text: 'text-rose-500',
-      lightBg: 'bg-rose-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    },
-    violet: {
-      bg: 'from-violet-500 to-violet-700',
-      iconBg: 'bg-violet-100',
-      button: 'from-violet-500 to-violet-700 hover:from-violet-600 hover:to-violet-800',
-      dot: 'bg-violet-500',
-      text: 'text-violet-600',
-      lightBg: 'bg-violet-50',
-      sidebarActive: 'bg-gray-50 text-gray-900'
-    }
-  };
-
-  const getDescriptionText = (title) => {
-    const descriptions = {
-      'Assessment Manager': 'All assessments are created and managed here.',
-      'Question Vault': 'All question vaults and templates are stored here.',
-      'Course Creator': 'Design and publish engaging learning experiences.',
-      'Testimonials': 'All user testimonials are managed here.',
-      'User Management': 'Administer user accounts, roles and permissions.',
-      'System Settings': 'Configure application settings and preferences.',
-      'Admin Profile': 'Update your admin profile and settings.',
+  // Color mapping for sophisticated UI
+  const getColorStyles = (color) => {
+    const maps = {
+      blue: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', iconBg: 'bg-blue-100', gradient: 'from-blue-600 to-blue-400', dot: 'bg-blue-500', accentLight: 'bg-blue-400/10', hover: 'hover:shadow-blue-200' },
+      emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', iconBg: 'bg-emerald-100', gradient: 'from-emerald-600 to-emerald-400', dot: 'bg-emerald-500', accentLight: 'bg-emerald-400/10', hover: 'hover:shadow-emerald-200' },
+      violet: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', iconBg: 'bg-violet-100', gradient: 'from-violet-600 to-violet-400', dot: 'bg-violet-500', accentLight: 'bg-violet-400/10', hover: 'hover:shadow-violet-200' },
+      amber: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', iconBg: 'bg-amber-100', gradient: 'from-amber-600 to-amber-400', dot: 'bg-amber-500', accentLight: 'bg-amber-400/10', hover: 'hover:shadow-amber-200' },
+      cyan: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200', iconBg: 'bg-cyan-100', gradient: 'from-cyan-600 to-cyan-400', dot: 'bg-cyan-500', accentLight: 'bg-cyan-400/10', hover: 'hover:shadow-cyan-200' },
+      indigo: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', iconBg: 'bg-indigo-100', gradient: 'from-indigo-600 to-indigo-400', dot: 'bg-indigo-500', accentLight: 'bg-indigo-400/10', hover: 'hover:shadow-indigo-200' },
+      slate: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', iconBg: 'bg-slate-100', gradient: 'from-slate-600 to-slate-400', dot: 'bg-slate-500', accentLight: 'bg-slate-400/10', hover: 'hover:shadow-slate-200' },
     };
-    return descriptions[title] || 'Manage this section efficiently.';
+    return maps[color] || maps.blue;
   };
 
-  const AdminCard = ({ title, description, icon: Icon, color, features, path }) => {
-    const colors = colorClasses[color];
-    
-    return (
-      <div className="group h-80"> {/* Fixed height for all cards */}
-        <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 overflow-hidden h-full flex flex-col">
-          {/* Card Header - Reduced padding and font sizes */}
-          <div className={`bg-gradient-to-r ${colors.bg} p-4 text-white relative overflow-hidden`}>
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-10 rounded-full -translate-y-12 translate-x-12"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <div className=" bg-opacity-20 rounded-md backdrop-blur-sm">
-                  <Icon className="h-10 w-10 text-white" />
-                </div>
-              </div>
-              <h3 className="text-lg font-bold mb-1">{title}</h3>
-              <p className="text-white text-opacity-90 text-xs">{description}</p>
-            </div>
-          </div>
-
-          {/* Card Body - Adjusted spacing */}
-          <div className="p-4 flex-1 flex flex-col">
-            <p className="text-gray-600 mb-4 text-xs leading-relaxed">
-              {getDescriptionText(title)}
-            </p>
-
-            {/* Features - Smaller text */}
-            <div className="space-y-2 mb-4">
-              {features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <div className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></div>
-                  <span className="text-gray-700 text-xs">{feature}</span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => navigate(path)}
-              className={`mt-auto w-full bg-gradient-to-r ${colors.button} text-white py-3 px-4 rounded-md font-medium transition-all duration-300 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md cursor-pointer group text-sm`}
-            >
-              <span className="leading-none">Open {title}</span>
-              <ArrowRight className="h-3 w-3 transform group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const activeCategoryData = adminCategories.find(cat => cat.id === activeCategory);
+  const activeCategoryData = adminCategories.find(c => c.id === activeCategory);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && isMobile && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col lg:flex-row font-sans text-slate-900 relative overflow-hidden">
       
-      {/* Sidebar - Fixed and toggleable on all screens */}
-      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out h-screen flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        {/* Sidebar Header - Reduced size */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-500">
-          <div className="flex items-center space-x-2">
-            <div className=" bg-opacity-20 p-1.5 rounded-md">
-              <Sparkles className="h-5 w-5 text-white" />
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200/30 rounded-full blur-3xl animate-blob"></div>
+        <div className="absolute top-40 right-20 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-32 left-40 w-80 h-80 bg-pink-200/30 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+      </div>
+
+      <style>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+          50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -1000px 0; }
+          100% { background-position: 1000px 0; }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+
+        .animate-pulse-glow {
+          animation: pulse-glow 2s ease-in-out infinite;
+        }
+        .shimmer-effect {
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+          background-size: 1000px 100%;
+          animation: shimmer 2s infinite;
+        }
+      `}</style>
+      
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white/80 backdrop-blur-lg border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg animate-pulse-glow">
+            <Sparkles className="h-5 w-5 text-white" />
+          </div>
+          <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">GMATInsight</span>
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hover:rotate-90 transition-transform duration-300">
+          {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
+
+      {/* Sidebar Navigation */}
+      {(isSidebarOpen || !isMobile) && (
+        <aside 
+          className={`fixed lg:sticky top-0 h-screen w-64 bg-white/90 backdrop-blur-xl border-r border-gray-200 z-40 flex flex-col shadow-2xl lg:shadow-none transition-all duration-500 ${
+            isMobile ? 'top-[65px] h-[calc(100vh-65px)]' : ''
+          } ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+        >
+          {/* Logo Area */}
+          <div className="hidden lg:flex items-center gap-3 p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-2 rounded-xl shadow-lg animate-pulse-glow hover:scale-110 transition-transform duration-300">
+              <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">GMATInsight</h1>
-              <p className="text-blue-100 text-xs">Admin Panel</p>
+              <h1 className="font-bold text-xl tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">GMATInsight</h1>
+              <p className="text-xs text-gray-500 font-medium">Admin Workspace</p>
             </div>
           </div>
-          <button 
-            className="p-1.5 rounded-md text-white hover:bg-white hover:bg-opacity-20 transition-colors lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        
-        {/* Navigation - Scrollable */}
-        <div className="flex-1 overflow-y-auto py-3">
-          <nav className="space-y-1 px-3">
-            {adminCategories.map((category) => {
-              const colors = colorClasses[category.color];
-              const isActive = activeCategory === category.id;
+
+          {/* Navigation Links */}
+          <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="space-y-1">
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Modules</p>
+              {adminCategories.map((category, idx) => {
+                const isActive = activeCategory === category.id;
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => {
+                      setActiveCategory(category.id);
+                      if(isMobile) setIsSidebarOpen(false);
+                    }}
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 group ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg scale-105' 
+                        : 'text-gray-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-gray-900 hover:scale-105'
+                    }`}
+                  >
+                    <category.icon className={`h-4 w-4 transition-transform duration-300 ${isActive ? 'text-white scale-110' : 'text-gray-400 group-hover:scale-110 '}`} />
+                    {category.title}
+                    {isActive && (
+                      <div className="ml-auto w-2 h-2 rounded-full bg-white animate-pulse" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="space-y-1">
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Quick Access</p>
+             
+              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-gray-900 transition-all duration-300 group hover:scale-105">
+                <LogOut className="h-4 w-4 text-gray-400 group-hover:scale-110 transition-transform duration-300" />
+                Logout
+              </button>
+            </div>
+          </nav>
+
+          {/* User Profile */}
+          {/* <div className="p-4 border-t border-gray-100 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
+            <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-white transition-all duration-300 cursor-pointer group hover:scale-105 hover:shadow-lg">
+              <Avatar className="h-9 w-9 border-2 border-blue-200 group-hover:border-blue-400 transition-all duration-300 group-hover:scale-110">
+                <AvatarImage src="https://github.com/shadcn.png" />
+                <AvatarFallback>AD</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">Admin User</p>
+                <p className="text-xs text-gray-500 truncate">admin@gmatinsight.com</p>
+              </div>
+              <Settings className="h-4 w-4 text-gray-400 group-hover:rotate-180 transition-transform duration-500" />
+            </div>
+          </div> */}
+        </aside>
+      )}
+
+      {/* Main Content Area */}
+      <main className="flex-1 min-w-0 overflow-y-auto relative z-10">
+        {/* Header */}
+        <header className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl border-b border-gray-200 px-4 sm:px-6 py-4 shadow-sm">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
+  {activeCategoryData?.title}
+</h2>
+
+            <p className="text-xs sm:text-sm text-gray-500 hidden sm:block mt-1">
+              {activeCategoryData?.description}
+            </p>
+          </div>
+        </header>
+
+        {/* Dashboard Content */}
+        <div className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto space-y-6 sm:space-y-8 lg:space-y-10">
+          
+          {/* Welcome Banner - Only shows once */}
+          {!isLoading && showWelcomeBanner && (
+            <div className="rounded-2xl border-2 border-gray-200 bg-white/80 backdrop-blur-sm p-4 sm:p-5 shadow-xl relative overflow-hidden group hover:shadow-2xl transition-all duration-500 hover:scale-[1.02]">
+              <button
+                onClick={dismissWelcomeBanner}
+                className="absolute top-3 right-3 z-20 p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 group/close"
+                aria-label="Dismiss banner"
+              >
+                <X className="h-4 w-4 text-gray-400 group-hover/close:text-gray-600" />
+              </button>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="shimmer-effect absolute inset-0 opacity-0 group-hover:opacity-100"></div>
+              <div className="relative z-10">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1 pr-8">
+                    <h3 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-blue-600" />
+                      Welcome back, Admin
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                      You have <span className="font-semibold text-blue-600">3 pending approvals</span> in Community and <span className="font-semibold text-indigo-600">5 new assessments</span> created on December 23, 2025. System performance is optimal.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {activeCategoryData?.items.map((item, index) => {
+              const styles = getColorStyles(item.color);
+              const isHovered = hoveredCard === item.title;
               
               return (
-                <button
-                  key={category.id}
-                  className={`flex items-center w-full p-3 rounded-md transition-all duration-200 group text-sm relative overflow-hidden ${
-                    isActive 
-                      ? colors.sidebarActive + ' font-semibold shadow-sm' 
-                      : 'hover:bg-gray-50 text-gray-700'
-                  }`}
-                  onClick={() => {
-                    setActiveCategory(category.id);
-                    if (isMobile) setSidebarOpen(false);
-                  }}
+                <div
+                  key={item.title}
+                  style={{ animationDelay: `${index * 1000}ms` }}
+                  onMouseEnter={() => setHoveredCard(item.title)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  className="transform transition-all duration-15000 hover:scale-105 hover:-translate-y-2"
                 >
-                  <category.icon className={`h-4 w-4 mr-3 flex-shrink-0 transition-colors duration-200 ${isActive ? colors.text : 'text-gray-500'}`} />
-                  <div className="text-left flex-1">
-                    <div className={`transition-colors duration-200 ${isActive ? 'font-semibold text-gray-900' : 'text-gray-900'}`}>{category.title}</div>
-                    <div className={`text-xs transition-colors duration-200 ${isActive ? 'text-gray-600' : 'text-gray-400'}`}>
-                      {category.items.length} items
-                    </div>
-                  </div>
-                  {/* Animated Underline */}
-                  <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-300 ease-out ${isActive ? 'w-full bg-gradient-to-r from-blue-500 to-indigo-600' : 'w-0 bg-transparent'}`}></div>
-                </button>
+                   <Card className={`h-full border-4 ${styles.border} shadow-xl hover:shadow-2xl transition-all duration-1000 group overflow-hidden relative bg-white rounded-2xl ${styles.hover}`}>
+                    
+                    {/* Gradient Header Background */}
+                    <div
+  className={`absolute top-0 left-1/2 -translate-x-1/2 w-[100%] h-[20%]
+  bg-gradient-to-br ${styles.gradient} opacity-[0.1]`}
+></div>
+
+
+                    
+                    {/* Animated Orbs */}
+                    <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl ${styles.accentLight} opacity-5 group-hover:opacity-75 transition-all duration-100 animate-blob`}></div>
+                    <div className={`absolute -bottom-16 -left-16 w-48 h-48 rounded-full blur-3xl ${styles.accentLight} opacity-5 group-hover:opacity-75 transition-all duration-100 animate-blob animation-delay-2000`}></div>
+                    
+                    {/* Shimmer Effect */}
+                    <div className="shimmer-effect absolute inset-0 opacity-0 group-hover:opacity-500"></div>
+
+                    <CardHeader className="pb-4 relative z-10">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className={`p-4 rounded-2xl shadow-xl flex-shrink-0 ${styles.bg} border border-gray-100 transform transition-all duration-500  group-hover:shadow-2xl`}>
+                          <item.icon className={`h-8 w-8 ${styles.text} transition-transform duration-500`} />
+                        </div>
+                      </div>
+                      <CardTitle className="mt-6 text-xl font-bold text-gray-900 transition-all duration-300">
+                        {item.title}
+                      </CardTitle>
+                      <CardDescription className="text-gray-600 mt-2 text-sm leading-relaxed">
+                        {item.description}
+                      </CardDescription>
+                    </CardHeader>
+                    
+                    <CardContent className="relative z-10 flex flex-col">
+                      <div className="space-y-3 mb-8 flex-grow">
+                        {item.features.map((feature, i) => (
+                          <div 
+                            key={i}
+                            style={{ transitionDelay: `${i * 50}ms` }}
+                            className="flex items-center text-sm text-gray-700 font-medium"
+                          >
+                            <div className={`w-2.5 h-2.5 rounded-full mr-3 ${styles.dot}`}></div>
+                            <span className="">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <Button 
+                        onClick={() => navigate(item.path)}
+                        className="cursor-pointer w-full font-semibold py-3 px-4 transition-all duration-500 text-white shadow-xl bg-gradient-to-r ${styles.gradient} hover:shadow-2xl rounded-xl text-base transform hover:scale-105 group-hover:animate-pulse-glow relative overflow-hidden"
+                      >
+                        <span className="relative z-10 flex items-center justify-center">
+                          Manage {item.title.split(' ')[0]}
+                          <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-300 group-hover:translate-x-2" />
+                        </span>
+                        <div className="absolute inset-0 bg-white/20 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
               );
             })}
-          </nav>
-        </div>
-        
-        {/* Sidebar Footer - Reduced size */}
-        <div className="p-3 border-t border-gray-200 bg-gray-50">
-          <button className="w-full flex items-center justify-center space-x-2 text-gray-500 hover:text-gray-700 p-1.5 rounded-md hover:bg-gray-200 transition-colors text-sm">
-            <LogOut className="h-4 w-4" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content - Adjust margin when sidebar open */}
-      <div className={`flex-1 flex flex-col min-h-screen overflow-hidden transition-all duration-300 ${sidebarOpen && !isMobile ? 'ml-64' : 'ml-0'}`}>
-        {/* Top Bar - Always show toggle */}
-        <div className="bg-white shadow-sm border-b border-gray-200 p-3 lg:p-3.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button 
-                className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-              
-              <div className="flex items-center space-x-2">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{activeCategoryData.title}</h2>
-                  <p className="text-gray-600 text-sm">{activeCategoryData.description}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-2 text-sm text-gray-500">
-              <span>{activeCategoryData.items.length} features available</span>
-            </div>
           </div>
         </div>
-
-        {/* Main Content Area - Scrollable */}
-        <div className="flex-1 overflow-auto">
-          <div className="p-4 lg:p-6">
-            {/* Dashboard Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-              {activeCategoryData.items.map((item, index) => (
-                <AdminCard key={index} {...item} />
-              ))}
-            </div>
-
-            {/* Empty State */}
-            {activeCategoryData.items.length === 0 && (
-              <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <activeCategoryData.icon className="h-16 w-16 mx-auto" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No items available</h3>
-                <p className="text-gray-600">Items for this category will appear here.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
+    <Footer/>
+    </>
+
   );
 }

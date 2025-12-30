@@ -1,209 +1,137 @@
-import React from 'react';
-import { Star } from 'lucide-react';
+import React from "react";
+import { Star } from "lucide-react";
 
 const Reviews = () => {
   const StarRating = ({ count = 5, score = null }) => (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 mt-2">
       <div className="flex">
         {[...Array(count)].map((_, i) => (
           <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
         ))}
       </div>
-      {score && <span className="text-sm text-gray-600 ml-2">{score}</span>}
+      {score && (
+        <span className="text-xs font-medium text-gray-500 ml-2">{score}</span>
+      )}
     </div>
   );
 
   const recognitions = [
-  
     {
       logo: "https://d6mmsse0kchai.cloudfront.net/standalone/20250702/images/recognitions/gmat_club@2x.webp",
       alt: "GMAT Club",
       title: "Legendary expert on GMATCLUB with 15k+ Kudos",
       description: "On GMAT Club",
       stars: 5,
-      score: "700+ Reviews"
+      score: "700+ Reviews",
     },
-     {
+    {
       logo: "https://d6mmsse0kchai.cloudfront.net/standalone/20250702/images/recognitions/poets_quants@2x.webp",
       alt: "Poets & Quants",
       title: "5-Star rated admission and GMAT support services",
       description: "For making difficult concepts clear",
-      stars: 5
+      stars: 5,
     },
     {
       logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png",
       alt: "Google Reviews",
-      title: "Dwarka New Delhi: Top-rated GMAT Prep services with 20 years of experience",
+      title:
+        "Dwarka New Delhi: Top-rated GMAT Prep services with 20 years of experience",
       description: "2019 - 2024 on MBA Insight",
-      stars: 5
+      stars: 5,
     },
     {
       logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png",
       alt: "Google Reviews",
-      title: "Malviya Nagar, New Delhi: Top-rated GMAT Prep services with 20 years of experience",
+      title:
+        "Malviya Nagar, New Delhi: Top-rated GMAT Prep services with 20 years of experience",
       description: "2019 - 2024 on MBA Insight",
-      stars: 5
-    }
+      stars: 5,
+    },
   ];
 
+  const Card = ({ children }) => (
+    <div className="bg-white/70 backdrop-blur-md border border-white/40 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 h-full">
+      {children}
+    </div>
+  );
+
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-100">
+    <section className="bg-gradient-to-br from-blue-50 via-indigo-50 to-indigo-100 py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 4 columns x 3 rows grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-fr">
-          
-          {/* Main heading section - spans 2 rows x 2 columns */}
-          <div className="md:col-span-2 md:row-span-2 lg:col-span-2 lg:row-span-2">
-            <div 
-              className="bg-transparent  p-8 h-full flex flex-col justify-center relative overflow-hidden"
-              style={{
-                backgroundImage: `url(global3.png)`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat'
-              }}
+
+          <div className="md:col-span-2 md:row-span-2">
+            <div
+              className="relative h-full overflow-hidden rounded-xl flex items-center border border-white/10"
+              style={{ backgroundColor: "#050b1a" }}
             >
-              {/* Dark overlay for better text readability */}
-              <div className="absolute inset-0 bg-blue bg-opacity-20 rounded-lg"></div>
-              
+              {/* World Map – higher visibility */}
+              <div
+                className="absolute inset-0 mix-blend-screen"
+                style={{
+                  backgroundImage: `url(global3.png)`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  opacity: 0.55,
+                  filter: "brightness(1.8) contrast(1.2)",
+                }}
+              />
+
+              {/* Softer dark overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#020617]/80 via-[#020617]/65 to-[#0a1b3f]/50" />
+
+              {/* Subtle tech glow */}
+              <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/25 blur-[120px]" />
+              <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-600/25 blur-[110px]" />
+
               {/* Content */}
-              <div className="relative z-10">
-                <h2 className="text-3xl md:text-4xl font-semibold text-gray-800 mb-6">
-                  A <span className="font-semibold">globally recognized</span> GMAT course powered by AI
+              <div className="relative z-10 p-10">
+                <h2 className="text-3xl md:text-4xl font-semibold leading-tight mb-6 text-gray-100">
+                  A{" "}
+                  <span className="text-cyan-400 drop-shadow-[0_0_14px_rgba(34,211,238,0.7)]">
+                    globally recognized
+                  </span>{" "}
+                  GMAT course powered by AI
                 </h2>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200 w-fit">
-                  TRY THE COURSE FOR FREE
-                </button>
+
+             <div className="border-l-4 border-red-500 pl-4 text-white font-medium">
+  TRY THE COURSE FOR FREE
+</div>
+
               </div>
             </div>
           </div>
 
-          {/* Row 1 - Morningstar */}
-          <div className="bg-transparent rounded-lg p-6  flex flex-col h-full">
-            <div className="flex items-center mb-4">
-              <img
-                src={recognitions[0].logo}
-                alt={recognitions[0].alt}
-                className="h-12 w-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {recognitions[0].title}
-              </h3>
-              <p className="text-sm text-gray-600 mb-3 leading-relaxed">
-                {recognitions[0].description}
-              </p>
-              <StarRating count={recognitions[0].stars} score={recognitions[0].score} />
-            </div>
-          </div>
-
-          {/* Row 1 - GMAT Club */}
-          <div className="bg-transparent rounded-lg p-6  flex flex-col h-full">
-            <div className="flex items-center mb-4">
-              <img
-                src={recognitions[1].logo}
-                alt={recognitions[1].alt}
-                className="h-12 w-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {recognitions[1].title}
-              </h3>
-              <p className="text-sm text-gray-600 mb-3 leading-relaxed">
-                {recognitions[1].description}
-              </p>
-              <StarRating count={recognitions[1].stars} score={recognitions[1].score} />
-            </div>
-          </div>
-
-          {/* Row 2 - MBA Insight */}
-          <div className="bg-transparent rounded-lg p-6  flex flex-col h-full">
-            <div className="flex items-center mb-4">
-              <img
-                src={recognitions[2].logo}
-                alt={recognitions[2].alt}
-                className="h-12 w-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {recognitions[2].title}
-              </h3>
-              <p className="text-sm text-gray-600 mb-3 leading-relaxed">
-                {recognitions[2].description}
-              </p>
-              <StarRating count={recognitions[2].stars} score={recognitions[2].score} />
-            </div>
-          </div>
-
-          {/* Row 2 - Beat GMAT */}
-          <div className="bg-transparent rounded-lg p-6  flex flex-col h-full">
-            <div className="flex items-center mb-4">
-              <img
-                src={recognitions[3].logo}
-                alt={recognitions[3].alt}
-                className="h-12 w-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {recognitions[3].title}
-              </h3>
-              <p className="text-sm text-gray-600 mb-3 leading-relaxed">
-                {recognitions[3].description}
-              </p>
-              <StarRating count={recognitions[3].stars} score={recognitions[3].score} />
-            </div>
-          </div>
-
-          {/* Row 3 - All 4 Poets & Quants */}
-          {recognitions.slice(4).map((recognition, index) => (
-            <div key={index + 4} className="bg-transparent rounded-lg p-6  flex flex-col h-full">
+          {/* Recognition Cards */}
+          {recognitions.map((rec, idx) => (
+            <Card key={idx}>
               <div className="flex items-center mb-4">
                 <img
-                  src={recognition.logo}
-                  alt={recognition.alt}
+                  src={rec.logo}
+                  alt={rec.alt}
                   className="h-12 w-auto object-contain"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
+                  onError={(e) => (e.target.style.display = "none")}
                 />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {recognition.title}
-                </h3>
-                <p className="text-sm text-gray-600 mb-3 leading-relaxed">
-                  {recognition.description}
-                </p>
-                <StarRating count={recognition.stars} score={recognition.score} />
-              </div>
-            </div>
+              <h3 className="text-base font-semibold text-gray-900 mb-2">
+                {rec.title}
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {rec.description}
+              </p>
+              <StarRating count={rec.stars} score={rec.score} />
+            </Card>
           ))}
         </div>
 
-        {/* Mobile CTA Button */}
-        <div className="mt-8 lg:hidden flex justify-center">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200">
+        {/* Mobile CTA */}
+        <div className="mt-10 lg:hidden flex justify-center">
+          <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition">
             TRY THE COURSE FOR FREE
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

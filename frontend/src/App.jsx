@@ -10,8 +10,7 @@ import GreCoursesSection from "./pages/gre.jsx";
 import AboutPage from "./pages/about.jsx";
 import ContactUs from "./pages/contact.jsx";
 import TestimonialsPage from "./pages/testimonials.jsx";
-import TestimonialPage from "./components/oneTestimonial.jsx";
-import GMATCoursePage from "./pages/gmat1.jsx";
+import GMATCoursePage from "./pages/GmatCoursePage.jsx";
 import GMATFocusFormat from "./pages/knowgmat.jsx";
 
 // Full Length Test (FLT) related pages
@@ -52,18 +51,18 @@ function App() {
             <Route path="/login" element={<LoginPage />} />{" "}
             {/* User login page */}
             <Route path="/gmat" element={<GmatCoursesSection />} />{" "}
+            <Route path="/gmat-course-page" element={<GMATCoursePage />} />{" "}
             {/* GMAT courses list */}
             <Route path="/gre" element={<GreCoursesSection />} />{" "}
             {/* GRE courses list */}
-            <Route path="/about" element={<AboutPage />} /> {/* About us page */}
-            <Route path="/contact" element={<ContactUs />} /> {/* Contact page */}
+            <Route path="/about" element={<AboutPage />} />{" "}
+            {/* About us page */}
+            <Route path="/contact" element={<ContactUs />} />{" "}
+            {/* Contact page */}
             <Route path="/testimonials" element={<TestimonialsPage />} />{" "}
-            {/* All testimonials */}
-            <Route path="/user1" element={<TestimonialPage />} />{" "}
-            {/* Single testimonial view */}
             <Route path="/gmatcourse1" element={<GMATCoursePage />} />{" "}
             {/* Specific GMAT course details */}
-            <Route path="/knowgmat" element={<GMATFocusFormat />} />{" "}
+            <Route path="/full-length-test" element={<GMATFocusFormat />} />{" "}
             {/* GMAT exam format details */}
             {/* FLT (Full Length Test) routes */}
             <Route path="/flt" element={<FLTHome />} /> {/* FLT homepage */}

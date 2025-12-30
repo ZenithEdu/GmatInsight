@@ -9,7 +9,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative h-[85vh] min-h-[400px] w-full overflow-hidden">
+    <section className="relative h-[90vh] min-h-[400px] w-full overflow-hidden">
       {/* Fallback background while video loads */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-purple-900 z-0"></div>
 

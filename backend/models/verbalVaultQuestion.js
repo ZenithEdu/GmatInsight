@@ -6,7 +6,7 @@ const VerbalVaultQuestionSchema = new mongoose.Schema({
   type: { type: String, required: true },
   topic: { type: String, required: true },
   question: { type: String, required: true },
-  passage: { type: String, required: true },
+  passage: { type: String, required: false },
   options: [{ type: String, required: true }],
   answer: { type: String, required: true },
   difficulty: { type: String, required: true },
