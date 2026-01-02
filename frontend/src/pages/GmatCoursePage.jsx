@@ -90,39 +90,6 @@ export default function GMATCoursePage() {
     },
   ];
 
-  const courseDetails = [
-    {
-      icon: <BookOpen size={20} />,
-      title: "Comprehensive Lessons",
-      desc: "Structured lessons covering all GMAT topics with real examples.",
-    },
-    {
-      icon: <Clock size={20} />,
-      title: "Flexible Duration",
-      desc: "Learn at your own pace with access to all modules for 12 months.",
-    },
-    {
-      icon: <Award size={20} />,
-      title: "Certification",
-      desc: "Receive an official certificate upon successful completion.",
-    },
-    {
-      icon: <Users size={20} />,
-      title: "Expert Tutors",
-      desc: "Learn from experienced instructors with proven track records.",
-    },
-    {
-      icon: <BookOpen size={20} />,
-      title: "Practice Tests",
-      desc: "Test your knowledge with regular quizzes and mock exams.",
-    },
-    {
-      icon: <Clock size={20} />,
-      title: "Time Management Tips",
-      desc: "Learn strategies to manage your time effectively during exams.",
-    },
-  ];
-
   const courseIncludes = [
     "No Pre-requisite Required",
     "170+ hours Video Content",
@@ -287,15 +254,44 @@ export default function GMATCoursePage() {
                   </div>
                 </div>
 
-                {/* Course Preview Image - Responsive */}
-                <div className="mt-5 rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
-                  <div className="relative">
-                    <div className="absolute" />
-                    <img
-                      src="/courseplayerImg.png"
-                      alt="Course Player Preview"
-                      className="relative w-full max-w-4xl mx-auto shadow-2xl transform transition-transform duration-500"
-                    />
+                {/* Course Preview – Professional Platform Showcase */}
+                <div className="mt-8">
+                  <div className="relative max-w-5xl mx-auto">
+                    {/* Soft background glow */}
+                    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-500/10 via-transparent to-indigo-500/10 rounded-3xl blur-2xl" />
+
+                    {/* Card */}
+                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-xl">
+                      {/* 🔒 Top label bar — unchanged */}
+                      <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span>
+                          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
+                          <span className="w-2.5 h-2.5 rounded-full bg-green-400"></span>
+                        </div>
+
+                        <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                          Live Course Player Preview
+                        </span>
+                      </div>
+
+                      {/* Image */}
+                      <div className="relative">
+                        <img
+                          src="/courseplayerImg.png"
+                          alt="GMAT Course Platform Preview"
+                          className="w-full object-cover"
+                        />
+
+                        {/* ✅ Bottom caption overlay — fixed */}
+                        <div className="absolute inset-x-0 bottom-0 bg-slate-900/80 px-4 py-6 rounded-b-2xl">
+                          <p className="text-sm text-gray-300 text-center font-medium tracking-wide">
+                            Real GMAT learning platform with video lessons,
+                            practice modules, and performance tracking
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

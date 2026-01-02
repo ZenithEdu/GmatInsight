@@ -37,50 +37,55 @@ const TestimonialsPage = () => {
     };
   }, []);
 
-  const themes = {
-    indigo: {
-      wrapper: 'shadow-lg shadow-indigo-200/50 border-2 border-indigo-300 bg-indigo-50/10',
-      accent: 'text-indigo-600',
-      gradient: 'from-indigo-600 to-blue-600',
-      bgAccent: 'bg-indigo-100',
-      button: 'bg-indigo-600 text-white hover:bg-indigo-700',
-    },
-    emerald: {
-      wrapper: 'shadow-lg shadow-emerald-200/50 border-2 border-emerald-300 bg-emerald-50/10',
-      accent: 'text-emerald-600',
-      gradient: 'from-emerald-600 to-teal-600',
-      bgAccent: 'bg-emerald-100',
-      button: 'bg-emerald-600 text-white hover:bg-emerald-700',
-    },
-    rose: {
-      wrapper: 'shadow-lg shadow-rose-200/50 border-2 border-rose-300 bg-rose-50/10',
-      accent: 'text-rose-600',
-      gradient: 'from-rose-600 to-pink-600',
-      bgAccent: 'bg-rose-100',
-      button: 'bg-rose-600 text-white hover:bg-rose-700',
-    },
-    amber: {
-      wrapper: 'shadow-lg shadow-amber-200/50 border-2 border-amber-300 bg-amber-50/10',
-      accent: 'text-amber-600',
-      gradient: 'from-amber-600 to-orange-600',
-      bgAccent: 'bg-amber-100',
-      button: 'bg-amber-600 text-white hover:bg-amber-700',
-    },
-    cyan: {
-      wrapper: 'shadow-lg shadow-cyan-200/50 border-2 border-cyan-300 bg-cyan-50/10',
-      accent: 'text-cyan-600',
-      gradient: 'from-cyan-600 to-blue-600',
-      bgAccent: 'bg-cyan-100',
-      button: 'bg-cyan-600 text-white hover:bg-cyan-700',
-    },
-    violet: {
-      wrapper: 'shadow-lg shadow-violet-200/50 border-2 border-violet-300 bg-violet-50/10',
-      accent: 'text-violet-600',
-      gradient: 'from-violet-600 to-purple-600',
-      bgAccent: 'bg-violet-100',
-      button: 'bg-violet-600 text-white hover:bg-violet-700',
-    }
-  };
+ const themes = {
+  indigo: {
+    wrapper: 'shadow-lg shadow-indigo-200/50 border-2 border-indigo-300 bg-indigo-50/10',
+    accent: 'text-indigo-700',
+    gradient: 'from-indigo-700 to-blue-700',
+    bgAccent: 'bg-indigo-100',
+    button: 'bg-indigo-700 text-white hover:bg-indigo-800',
+  },
+
+  emerald: {
+    wrapper: 'shadow-lg shadow-emerald-200/50 border-2 border-emerald-300 bg-emerald-50/10',
+    accent: 'text-emerald-700',
+    gradient: 'from-emerald-700 to-teal-700',
+    bgAccent: 'bg-emerald-100',
+    button: 'bg-emerald-700 text-white hover:bg-emerald-800',
+  },
+
+  rose: {
+    wrapper: 'shadow-lg shadow-rose-200/50 border-2 border-rose-300 bg-rose-50/10',
+    accent: 'text-rose-700',
+    gradient: 'from-rose-700 to-pink-700',
+    bgAccent: 'bg-rose-100',
+    button: 'bg-rose-700 text-white hover:bg-rose-800',
+  },
+
+  amber: {
+    wrapper: 'shadow-lg shadow-amber-200/50 border-2 border-amber-300 bg-amber-50/10',
+    accent: 'text-amber-700',
+    gradient: 'from-amber-700 to-orange-700',
+    bgAccent: 'bg-amber-100',
+    button: 'bg-amber-700 text-white hover:bg-amber-800',
+  },
+
+  cyan: {
+    wrapper: 'shadow-lg shadow-cyan-200/50 border-2 border-cyan-300 bg-cyan-50/10',
+    accent: 'text-cyan-700',
+    gradient: 'from-cyan-700 to-blue-700',
+    bgAccent: 'bg-cyan-100',
+    button: 'bg-cyan-700 text-white hover:bg-cyan-800',
+  },
+
+  violet: {
+    wrapper: 'shadow-lg shadow-violet-200/50 border-2 border-violet-300 bg-violet-50/10',
+    accent: 'text-violet-700',
+    gradient: 'from-violet-700 to-purple-700',
+    bgAccent: 'bg-violet-100',
+    button: 'bg-violet-700 text-white hover:bg-violet-800',
+  },
+};
 
   const testimonials = [
     {

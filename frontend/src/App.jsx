@@ -1,7 +1,8 @@
 // Importing required modules and components
-import { BrowserRouter, Routes, Route } from "react-router-dom"; // React Router components for navigation
+import { BrowserRouter, Routes, Route,useLocation } from "react-router-dom"; // React Router components for navigation
 import "katex/dist/katex.min.css";
 import { SnackbarProvider } from "./components/SnackbarProvider";
+import { useEffect } from "react";
 // Public pages
 import Home from "./pages/home.jsx";
 import LoginPage from "./components/login.jsx";
@@ -11,12 +12,13 @@ import AboutPage from "./pages/about.jsx";
 import ContactUs from "./pages/contact.jsx";
 import TestimonialsPage from "./pages/testimonials.jsx";
 import GMATCoursePage from "./pages/GmatCoursePage.jsx";
-import GMATFocusFormat from "./pages/knowgmat.jsx";
+import GMATFocusFormat from "./pages/GMATFocusFormat.jsx";
+import TrynowPage from "./pages/trynow.jsx";
 
 // Full Length Test (FLT) related pages
 import FLTHome from "./fullLengthTests/FLTHome";
 import TestWindow from "./fullLengthTests/TestWindow.jsx";
-import NotFound from "./fullLengthTests/pages/NotFound.js";
+import NotFound from "./fullLengthTests/pages/NotFound.jsx";
 
 // Admin pages for test management
 import QuantPage from "./admin/vaultPages/QuantPage.jsx";
@@ -38,13 +40,30 @@ import Admin from "./admin/Admin.jsx";
 import QuestionVault from "./admin/vault/QuestionVault.jsx";
 import AssessmentManager from "./admin/assessments/AssessmentManager.jsx";
 import AdminProtectedRoute from "./admin/components/AdminProtectedRoute";
+import Mba from "./pages/Mba.jsx";
 
 function App() {
+
+  function ScrollToTopOnRouteChange() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "instant", // if want smooth use "smooth"
+    });
+  }, [pathname]);
+
+  return null;
+}
+
   return (
     <>
       {/* Setting up the Router */}
       <SnackbarProvider>
         <BrowserRouter>
+        <ScrollToTopOnRouteChange />
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Home />} /> {/* Homepage */}
@@ -56,11 +75,12 @@ function App() {
             <Route path="/gre" element={<GreCoursesSection />} />{" "}
             {/* GRE courses list */}
             <Route path="/about" element={<AboutPage />} />{" "}
+            <Route path="/try-now" element={<TrynowPage />} />
             {/* About us page */}
+            <Route path="/mba" element={<Mba />} /> {/* MBA prep page */}
             <Route path="/contact" element={<ContactUs />} />{" "}
             {/* Contact page */}
             <Route path="/testimonials" element={<TestimonialsPage />} />{" "}
-            <Route path="/gmatcourse1" element={<GMATCoursePage />} />{" "}
             {/* Specific GMAT course details */}
             <Route path="/full-length-test" element={<GMATFocusFormat />} />{" "}
             {/* GMAT exam format details */}
